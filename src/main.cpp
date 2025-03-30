@@ -32,6 +32,7 @@ int main() {
     }
 
     viewer = new Viewer {window};
+    viewer->init();
 
     while(!glfwWindowShouldClose(window)) {
         viewer->handleEvents();

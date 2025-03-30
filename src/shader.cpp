@@ -9,7 +9,7 @@ ShaderProgram::ShaderProgram(const std::string &vertexPath, const std::string &f
     GLenum types[2] { GL_VERTEX_SHADER, GL_FRAGMENT_SHADER };
     unsigned int ids[2];
     int success;
-    char log[512];
+    char log[512] = {0};
 
     for(size_t i = 0; i < 2; ++i) {
         std::ifstream s;
@@ -26,10 +26,9 @@ ShaderProgram::ShaderProgram(const std::string &vertexPath, const std::string &f
 
         glGetShaderiv(ids[i], GL_COMPILE_STATUS, &success);
         if(!success) {
-            for(size_t j = 0; j < i; ++j) glDeleteShader(ids[j]);
-
             glGetShaderInfoLog(ids[i], sizeof(log), NULL, log);
             std::cerr << "compilation of shader at path " << paths[i] << " failed with error " << log << std::endl;
+            for(size_t j = 0; j < i; ++j) glDeleteShader(ids[j]);
             throw std::runtime_error {""};
         }
     }
@@ -37,6 +36,8 @@ ShaderProgram::ShaderProgram(const std::string &vertexPath, const std::string &f
     id = glCreateProgram();
     glAttachShader(id, ids[0]);
     glAttachShader(id, ids[1]);
+    glLinkProgram(id);
+
     glGetProgramiv(id, GL_LINK_STATUS, &success);
     if(!success) {
         glGetProgramInfoLog(id, sizeof(log), NULL, log);
@@ -54,4 +55,8 @@ ShaderProgram::~ShaderProgram() {
 
 void ShaderProgram::use() {
     glUseProgram(id);
+}
+
+void ShaderProgram::setFloat3f(const std::string &name, float v0, float v1, float v2) {
+    glUniform3f(glGetUniformLocation(id, name.c_str()), v0, v1, v2);
 }

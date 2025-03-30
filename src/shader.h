@@ -11,4 +11,5 @@ public:
     ~ShaderProgram();
 
     void use();
+    void setFloat3f(const std::string &name, float v0, float v1, float v2);
 };

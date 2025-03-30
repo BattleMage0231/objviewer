@@ -16,6 +16,7 @@ add_executable(objviewer
     src/main.cpp
     src/shader.cpp
     src/viewer.cpp
+    src/parser.cpp
 )
 
 target_link_libraries(objviewer PRIVATE glfw glad glm)
