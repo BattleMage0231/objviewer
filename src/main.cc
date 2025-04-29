@@ -81,7 +81,7 @@ int main() {
 
     GLuint shaderId = createShaderProgram();
 
-    Viewer viewer {shaderId};
+    Viewer viewer {shaderId, 800, 600};
     viewer.init("../file.obj");
 
     while(!glfwWindowShouldClose(window)) {

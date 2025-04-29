@@ -1,7 +1,8 @@
 #include "viewer.h"
+#include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
 
-Viewer::Viewer(GLuint shader) : shader {shader} {}
+Viewer::Viewer(GLuint shader, unsigned int width, unsigned int height) : shader {shader}, width {width}, height {height} {}
 
 void Viewer::createBuffers() {
     auto& attrib = reader.GetAttrib();
@@ -34,8 +35,8 @@ void Viewer::createBuffers() {
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(float) * vertices.size(), vertices.data(), GL_STATIC_DRAW);
 
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(unsigned int) * indices.size(), indices.data(), GL_STATIC_DRAW);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * indices.size(), indices.data(), GL_STATIC_DRAW);
 
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*) 0);
     glEnableVertexAttribArray(0);
@@ -53,22 +54,35 @@ void Viewer::init(const std::string &path) {
 
     createBuffers();
 
+    glEnable(GL_DEPTH_TEST);
+
+    camera = Camera {glm::vec3 {4, 4, 4}, glm::vec3 {-1, -1, -1}};
     clock = glfwGetTime();
 }
 
 void Viewer::update() {
     float now = glfwGetTime();
     float deltaTime = now - clock;
+
+    angle += deltaTime;
+    camera.update(angle);
+
     clock = now;
 }
 
 void Viewer::render() {
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     glUseProgram(shader);
-    glUniform3f(glGetUniformLocation(shader, "inputColor"), 0.0f, 0.0f, 0.0f);
-    glBindVertexArray(VAO);
+    glUniform4f(glGetUniformLocation(shader, "inputColor"), 1.0f, 1.0f, 1.0f, 1.0f);
+    
+    glm::mat4 projection = glm::perspective(glm::radians(45.0f), (float) width / height, 0.1f, 100.0f);
+    glUniformMatrix4fv(glGetUniformLocation(shader, "projection"), 1, GL_FALSE, &projection[0][0]);
 
-    glDrawArrays(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT);
+    glm::mat4 view = camera.getView();
+    glUniformMatrix4fv(glGetUniformLocation(shader, "view"), 1, GL_FALSE, &view[0][0]);
+
+    glBindVertexArray(VAO);
+    glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
 }
