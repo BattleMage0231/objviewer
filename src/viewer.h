@@ -1,26 +1,24 @@
 #pragma once
 
-#include "shader.h"
-#include "parser.h"
+#include "tiny_obj_loader.h"
+#include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
 class Viewer {
-    GLFWwindow *window;
+    GLuint shader;
+    GLuint VAO;
+    GLuint VBO;
+    GLuint EBO;
+    tinyobj::ObjReader reader;
+    std::vector<float> vertices;
+    std::vector<unsigned int> indices;
     float clock;
-    ObjData data;
-    ShaderProgram shader;
 
-    unsigned int VAO;
-    unsigned int VBO;
-    unsigned int EBO;
-
+    void createBuffers();
 public:
-    Viewer(GLFWwindow *window);
-    ~Viewer();
+    Viewer(GLuint shader);
 
-    void init();
-    void resize(int width, int height);
-    void handleEvents();
+    void init(const std::string &path);
     void update();
     void render();
 };
