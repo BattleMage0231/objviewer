@@ -31,7 +31,11 @@ glm::vec3 Camera::getCameraPosition() const {
 }
 
 glm::mat4 Camera::getProjection(float aspectRatio) const {
-    return glm::perspective(fov, aspectRatio, 0.1f, 1000.0f);
+    float nearClip = distance * 0.01f;
+    float farClip = distance * 10.0f;
+    nearClip = glm::max(nearClip, 0.1f);
+    farClip = glm::max(farClip, nearClip * 2.0f);
+    return glm::perspective(fov, aspectRatio, nearClip, farClip);
 }
 
 glm::mat4 Camera::getView() const {

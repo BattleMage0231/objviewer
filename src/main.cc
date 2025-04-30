@@ -58,6 +58,11 @@ GLuint createShaderProgram() {
 }
 
 int main(int argc, char *argv[]) {
+    if(argc < 2) {
+        std::cerr << "no .obj file passed" << std::endl;
+        return -1;
+    }
+
     glfwSetErrorCallback([](int code, const char* msg) {
         std::cerr << "GLFW Error " << code << ": " << msg << std::endl;
     });
