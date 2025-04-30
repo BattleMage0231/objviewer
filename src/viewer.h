@@ -4,6 +4,7 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include "camera.h"
+#include "window.h"
 
 class Viewer {
     GLuint shader;
@@ -14,15 +15,12 @@ class Viewer {
     std::vector<float> vertices;
     std::vector<unsigned int> indices;
     float clock;
-    unsigned int width;
-    unsigned int height;
     Camera camera;
-
-    float angle = 0.0; // temp
+    Window window;
 
     void createBuffers();
 public:
-    Viewer(GLuint shader, unsigned int width, unsigned int height);
+    Viewer(GLFWwindow* window, GLuint shader);
 
     void init(const std::string &path);
     void update();

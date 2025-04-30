@@ -14,6 +14,13 @@ add_executable(objviewer
     src/main.cc
     src/viewer.cc
     src/camera.cc
+    src/window.cc
+)
+
+target_compile_options(objviewer PRIVATE
+    -Wall
+    -Wextra
+    -Wpedantic
 )
 
 target_link_libraries(objviewer PRIVATE glfw glad glm tinyobjloader)

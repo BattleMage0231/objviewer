@@ -10,10 +10,6 @@
 const std::string vertexPath = "../shaders/vertex.glsl";
 const std::string fragmentPath = "../shaders/fragment.glsl";
 
-void framebufferSizeCallback(GLFWwindow *window, int width, int height) {
-    glViewport(0, 0, width, height);
-}
-
 GLuint createShaderProgram() {
     std::string paths[2] { vertexPath, fragmentPath };
     GLenum types[2] { GL_VERTEX_SHADER, GL_FRAGMENT_SHADER };
@@ -59,6 +55,10 @@ GLuint createShaderProgram() {
 }
 
 int main() {
+    glfwSetErrorCallback([](int code, const char* msg) {
+        std::cerr << "GLFW Error " << code << ": " << msg << std::endl;
+    });
+
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
@@ -72,7 +72,6 @@ int main() {
     }
 
     glfwMakeContextCurrent(window);
-    glfwSetFramebufferSizeCallback(window, framebufferSizeCallback);
 
     if(!gladLoadGLLoader((GLADloadproc) glfwGetProcAddress)) {
         std::cerr << "failed to initialize GLAD" << std::endl;
@@ -81,7 +80,7 @@ int main() {
 
     GLuint shaderId = createShaderProgram();
 
-    Viewer viewer {shaderId, 800, 600};
+    Viewer viewer {window, shaderId};
     viewer.init("../file.obj");
 
     while(!glfwWindowShouldClose(window)) {

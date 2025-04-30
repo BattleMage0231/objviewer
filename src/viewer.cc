@@ -2,7 +2,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
 
-Viewer::Viewer(GLuint shader, unsigned int width, unsigned int height) : shader {shader}, width {width}, height {height} {}
+Viewer::Viewer(GLFWwindow* window, GLuint shader) : shader {shader}, window {window} {}
 
 void Viewer::createBuffers() {
     auto& attrib = reader.GetAttrib();
@@ -55,8 +55,9 @@ void Viewer::init(const std::string &path) {
     createBuffers();
 
     glEnable(GL_DEPTH_TEST);
+    glDisable(GL_CULL_FACE);
 
-    camera = Camera {glm::vec3 {4, 4, 4}, glm::vec3 {-1, -1, -1}};
+    camera = Camera(glm::vec3 {4, 4, 4}, glm::radians(-90.0f), glm::radians(0.0f), glm::radians(60.0f), 2.0f, 0.7f);
     clock = glfwGetTime();
 }
 
@@ -64,8 +65,23 @@ void Viewer::update() {
     float now = glfwGetTime();
     float deltaTime = now - clock;
 
-    angle += deltaTime;
-    camera.update(angle);
+    if(window.isKeyPressed(GLFW_KEY_W)) camera.moveX(deltaTime);
+    if(window.isKeyPressed(GLFW_KEY_S)) camera.moveX(-deltaTime);
+    if(window.isKeyPressed(GLFW_KEY_D)) camera.moveY(deltaTime);
+    if(window.isKeyPressed(GLFW_KEY_A)) camera.moveY(-deltaTime);
+
+    if(window.hasLastMouseState) {
+        float deltaX = 0.0, deltaY = 0.0; // temporary workaround for WSL development
+        if(window.isKeyPressed(GLFW_KEY_LEFT)) deltaX -= 1;
+        if(window.isKeyPressed(GLFW_KEY_RIGHT)) deltaX += 1;
+        if(window.isKeyPressed(GLFW_KEY_DOWN)) deltaY -= 1;
+        if(window.isKeyPressed(GLFW_KEY_UP)) deltaY += 1;
+
+        deltaX *= deltaTime;
+        deltaY *= deltaTime;
+
+        camera.moveMouse(deltaX, deltaY);
+    }
 
     clock = now;
 }
@@ -77,7 +93,7 @@ void Viewer::render() {
     glUseProgram(shader);
     glUniform4f(glGetUniformLocation(shader, "inputColor"), 1.0f, 1.0f, 1.0f, 1.0f);
     
-    glm::mat4 projection = glm::perspective(glm::radians(45.0f), (float) width / height, 0.1f, 100.0f);
+    glm::mat4 projection = camera.getProjection(window.getAspectRatio());
     glUniformMatrix4fv(glGetUniformLocation(shader, "projection"), 1, GL_FALSE, &projection[0][0]);
 
     glm::mat4 view = camera.getView();
