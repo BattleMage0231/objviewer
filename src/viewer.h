@@ -1,20 +1,20 @@
 #pragma once
 
-#include "tiny_obj_loader.h"
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include "camera.h"
 #include "window.h"
+#include "mesh.h"
 
 class Viewer {
     GLuint shader;
     GLuint VAO;
     GLuint VBO;
     GLuint EBO;
-    tinyobj::ObjReader reader;
-    std::vector<float> vertices;
-    std::vector<unsigned int> indices;
+
     float clock;
+
+    Mesh mesh;
     Camera camera;
     Window window;
 

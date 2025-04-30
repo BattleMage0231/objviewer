@@ -5,38 +5,16 @@
 Viewer::Viewer(GLFWwindow* window, GLuint shader) : shader {shader}, window {window} {}
 
 void Viewer::createBuffers() {
-    const auto &objVertices = reader.GetAttrib().GetVertices();
-    const auto& shapes = reader.GetShapes();
-    const auto& materials = reader.GetMaterials();
+    std::vector<float> vertexBuffer;
+    std::vector<unsigned int> elementBuffer;
 
-    vertices.clear();
-    indices.clear();
-
-    for(size_t s = 0; s < shapes.size(); ++s) {
-        size_t indexOffset = 0;
-        for(size_t f = 0; f < shapes[s].mesh.num_face_vertices.size(); f++) {
-            size_t fv = size_t(shapes[s].mesh.num_face_vertices[f]);
-            glm::vec3 color(1.0f, 1.0f, 1.0f);
-            int materialId = shapes[s].mesh.material_ids[f];
-            if(materialId >= 0) {
-                const auto &material = materials[materialId];
-                std::cout << material.name << std::endl;
-                color[0] = material.diffuse[0];
-                color[1] = material.diffuse[1];
-                color[2] = material.diffuse[2];
-            }
-            for(size_t v = 0; v < fv; ++v) {
-                int vertexIndex = shapes[s].mesh.indices[indexOffset + v].vertex_index;
-                vertices.emplace_back(objVertices[3 * vertexIndex]);
-                vertices.emplace_back(objVertices[3 * vertexIndex + 1]);
-                vertices.emplace_back(objVertices[3 * vertexIndex + 2]);
-                vertices.emplace_back(color[0]);
-                vertices.emplace_back(color[1]);
-                vertices.emplace_back(color[2]);
-                indices.emplace_back(indices.size());
-            }
-            indexOffset += fv;
+    for(const auto &face : mesh.faces) {
+        for(const auto &vtxIdx : face.vertices) {
+            glm::vec3 vtx = mesh.vertices[vtxIdx];
+            for(size_t i = 0; i < 3; ++i) vertexBuffer.emplace_back(vtx[i]);
+            vertexBuffer.emplace_back(static_cast<float>(face.material));
         }
+        for(size_t i = 0; i < 3; ++i) elementBuffer.emplace_back(elementBuffer.size());
     }
 
     glGenVertexArrays(1, &VAO);
@@ -46,34 +24,28 @@ void Viewer::createBuffers() {
     glBindVertexArray(VAO);
 
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(float) * vertices.size(), vertices.data(), GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(float) * vertexBuffer.size(), vertexBuffer.data(), GL_STATIC_DRAW);
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * indices.size(), indices.data(), GL_STATIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * elementBuffer.size(), elementBuffer.data(), GL_STATIC_DRAW);
 
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*) 0);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*) (3 * sizeof(float)));
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*) 0);
+    glVertexAttribPointer(1, 1, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*) (3 * sizeof(float)));
     glEnableVertexAttribArray(0);
     glEnableVertexAttribArray(1);
 }
 
 void Viewer::init(const std::string &path, const std::string &mtlDir) {
-    tinyobj::ObjReaderConfig config;
-    config.mtl_search_path = mtlDir;
-   
-    if(!reader.ParseFromFile(path, config)) {
-        if(!reader.Error().empty()) {
-            std::cerr << "TinyObjReader: " << reader.Error();
-        }
-        throw std::runtime_error {""};
-    }
-
+    mesh.load(path, mtlDir);
     createBuffers();
 
-    glEnable(GL_DEPTH_TEST);
     glDisable(GL_CULL_FACE);
+    glEnable(GL_DEPTH_TEST);
 
-    camera = Camera(glm::vec3 {0, 0, 0}, glm::radians(-90.0f), glm::radians(0.0f), glm::radians(60.0f), 5.0f, 2.0f);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    camera = Camera(glm::vec3 {0, 0, 0}, glm::radians(-90.0f), glm::radians(0.0f), glm::radians(60.0f), 15.0f, 4.0f);
     clock = glfwGetTime();
 }
 
@@ -107,6 +79,8 @@ void Viewer::render() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     glUseProgram(shader);
+    glUniform3fv(glGetUniformLocation(shader, "matKd"), mesh.materialKdUniform.size(), mesh.materialKdUniform.data());
+    glUniform1fv(glGetUniformLocation(shader, "matD"), mesh.materialDUniform.size(), mesh.materialDUniform.data());
     
     glm::mat4 projection = camera.getProjection(window.getAspectRatio());
     glUniformMatrix4fv(glGetUniformLocation(shader, "projection"), 1, GL_FALSE, &projection[0][0]);
@@ -115,5 +89,5 @@ void Viewer::render() {
     glUniformMatrix4fv(glGetUniformLocation(shader, "view"), 1, GL_FALSE, &view[0][0]);
 
     glBindVertexArray(VAO);
-    glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
+    glDrawElements(GL_TRIANGLES, 3 * mesh.faces.size(), GL_UNSIGNED_INT, 0);
 }

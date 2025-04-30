@@ -15,6 +15,7 @@ add_executable(objviewer
     src/viewer.cc
     src/camera.cc
     src/window.cc
+    src/mesh.cc
 )
 
 target_compile_options(objviewer PRIVATE
