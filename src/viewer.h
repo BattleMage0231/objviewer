@@ -22,7 +22,7 @@ class Viewer {
 public:
     Viewer(GLFWwindow* window, GLuint shader);
 
-    void init(const std::string &path);
+    void init(const std::string &path, const std::string &mtlDir);
     void update();
     void render();
 };

@@ -7,6 +7,8 @@
 #define TINYOBJLOADER_IMPLEMENTATION
 #include <tiny_obj_loader.h>
 
+const int startWidth = 1000;
+const int startHeight = 800;
 const std::string vertexPath = "../shaders/vertex.glsl";
 const std::string fragmentPath = "../shaders/fragment.glsl";
 
@@ -64,7 +66,7 @@ int main() {
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-    GLFWwindow* window = glfwCreateWindow(800, 600, "objviewer", NULL, NULL);
+    GLFWwindow* window = glfwCreateWindow(startWidth, startHeight, "objviewer", NULL, NULL);
     if(window == NULL) {
         std::cerr << "window creation failed" << std::endl;
         glfwTerminate();
@@ -81,7 +83,7 @@ int main() {
     GLuint shaderId = createShaderProgram();
 
     Viewer viewer {window, shaderId};
-    viewer.init("../file.obj");
+    viewer.init("../bmw.obj", "../");
 
     while(!glfwWindowShouldClose(window)) {
         viewer.update();

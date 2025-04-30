@@ -38,7 +38,7 @@ void Camera::moveMouse(float deltaX, float deltaY) {
 }
 
 glm::mat4 Camera::getProjection(float aspectRatio) const {
-    return glm::perspective(fov, aspectRatio, 0.1f, 100.0f);
+    return glm::perspective(fov, aspectRatio, 0.1f, 1000.0f);
 }
 
 glm::mat4 Camera::getView() const {
