@@ -2,6 +2,7 @@
 #include <GLFW/glfw3.h>
 #include <iostream>
 #include <exception>
+#include <filesystem>
 #include "viewer.h"
 
 #define TINYOBJLOADER_IMPLEMENTATION
@@ -56,7 +57,7 @@ GLuint createShaderProgram() {
     return id;
 }
 
-int main() {
+int main(int argc, char *argv[]) {
     glfwSetErrorCallback([](int code, const char* msg) {
         std::cerr << "GLFW Error " << code << ": " << msg << std::endl;
     });
@@ -81,9 +82,11 @@ int main() {
     }
 
     GLuint shaderId = createShaderProgram();
-
     Viewer viewer {window, shaderId};
-    viewer.init("../bmw.obj", "../");
+
+    std::filesystem::path filePath = argv[1];
+    std::filesystem::path dirPath = filePath.parent_path();
+    viewer.init(filePath, dirPath);
 
     while(!glfwWindowShouldClose(window)) {
         viewer.update();

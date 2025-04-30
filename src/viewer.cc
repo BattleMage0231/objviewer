@@ -45,7 +45,7 @@ void Viewer::init(const std::string &path, const std::string &mtlDir) {
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-    camera = Camera(glm::vec3 {0, 0, 0}, glm::radians(-90.0f), glm::radians(0.0f), glm::radians(60.0f), 15.0f, 4.0f);
+    camera = Camera(mesh.center, mesh.radius * 1.15f, 0.0f, 0.0f, glm::radians(60.0f));
     clock = glfwGetTime();
 }
 
@@ -53,23 +53,19 @@ void Viewer::update() {
     float now = glfwGetTime();
     float deltaTime = now - clock;
 
-    if(window.isKeyPressed(GLFW_KEY_W)) camera.moveX(deltaTime);
-    if(window.isKeyPressed(GLFW_KEY_S)) camera.moveX(-deltaTime);
-    if(window.isKeyPressed(GLFW_KEY_D)) camera.moveY(deltaTime);
-    if(window.isKeyPressed(GLFW_KEY_A)) camera.moveY(-deltaTime);
-
-    if(window.hasLastMouseState) {
-        float deltaX = 0.0, deltaY = 0.0; // temporary workaround for WSL development
-        if(window.isKeyPressed(GLFW_KEY_LEFT)) deltaX -= 1;
-        if(window.isKeyPressed(GLFW_KEY_RIGHT)) deltaX += 1;
-        if(window.isKeyPressed(GLFW_KEY_DOWN)) deltaY -= 1;
-        if(window.isKeyPressed(GLFW_KEY_UP)) deltaY += 1;
-
-        deltaX *= deltaTime;
-        deltaY *= deltaTime;
-
-        camera.moveMouse(deltaX, deltaY);
-    }
+    float deltaX = 0.0f, deltaY = 0.0f, deltaZoom = 0.0f;
+    if(window.isKeyPressed(GLFW_KEY_LEFT)) deltaX -= 1;
+    if(window.isKeyPressed(GLFW_KEY_RIGHT)) deltaX += 1;
+    if(window.isKeyPressed(GLFW_KEY_DOWN)) deltaY -= 1;
+    if(window.isKeyPressed(GLFW_KEY_UP)) deltaY += 1;
+    if(window.isKeyPressed(GLFW_KEY_Z)) deltaZoom -= 1;
+    if(window.isKeyPressed(GLFW_KEY_X)) deltaZoom += 1;
+    
+    deltaX *= deltaTime;
+    deltaY *= deltaTime;
+    deltaZoom *= deltaTime;
+    camera.rotate(deltaX * 2.0f, deltaY * 2.0f);
+    camera.zoom(deltaZoom * 0.4 * mesh.radius);
 
     clock = now;
 }

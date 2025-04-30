@@ -24,9 +24,15 @@ void Mesh::loadBase(const std::string &path, const std::string &mtlDir) {
         materials.emplace_back(Material {mat.name, Kd, mat.dissolve });
     }
 
+    min = glm::vec3(1.0e9, 1.0e9, 1.0e9);
+    max = glm::vec3(-1.0e9, -1.0e9, -1.0e9);
     for(size_t i = 0; i < objVertices.size(); i += 3) {
         vertices.emplace_back(objVertices[i], objVertices[i + 1], objVertices[i + 2]);
+        min = glm::min(min, vertices.back());
+        max = glm::max(max, vertices.back());
     }
+    center = (min + max) * 0.5f;
+    radius = glm::max(glm::length(max - center), glm::length(min - center));
 
     for(const auto &shape : objShapes) {
         groups.emplace_back(shape.name);

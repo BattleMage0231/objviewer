@@ -22,6 +22,11 @@ struct Mesh {
     std::vector<std::string> groups;
     std::vector<glm::vec3> vertices;
 
+    glm::vec3 min;
+    glm::vec3 max;
+    glm::vec3 center;
+    float radius;
+
     // surface view
     std::vector<Face> faces;
     std::unordered_map<size_t, std::vector<size_t>> materialToFaces;

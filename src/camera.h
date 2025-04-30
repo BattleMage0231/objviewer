@@ -3,27 +3,23 @@
 #include <glm/glm.hpp>
 
 class Camera {
-    glm::vec3 position;
-    glm::vec3 front;
-    glm::vec3 right;
-    glm::vec3 up;
+    glm::vec3 target;
+    float distance;
     float yaw;
     float pitch;
-
     float fov;
-    float speed;
-    float sensitivity;
 
     void computeVectors();
 
 public:
     Camera() {}
-    Camera(glm::vec3 position, float yaw, float pitch, float fov, float speed, float sensitivity);
+    Camera(glm::vec3 target, float distance, float yaw, float pitch, float fov);
 
-    void moveX(float delta);
-    void moveY(float delta);
-    void moveMouse(float deltaX, float deltaY);
+    void move(glm::vec3 target);
+    void rotate(float deltaYaw, float deltaPitch);
+    void zoom(float deltaZoom);
+
+    glm::vec3 getCameraPosition() const;
     glm::mat4 getProjection(float aspectRatio) const;
     glm::mat4 getView() const;
 };
-

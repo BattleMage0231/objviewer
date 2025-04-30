@@ -2,39 +2,32 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
 
-Camera::Camera(glm::vec3 position, float yaw, float pitch, float fov, float speed, float sensitivity) : 
-    position {std::move(position)}, 
-    yaw {yaw}, 
-    pitch {pitch}, 
-    fov {fov}, 
-    speed {speed}, 
-    sensitivity {sensitivity} 
-{
-    computeVectors();
+Camera::Camera(glm::vec3 target, float distance, float yaw, float pitch, float fov) :
+    target {target},
+    distance {distance},
+    yaw {yaw},
+    pitch {pitch},
+    fov {fov}
+{}
+
+void Camera::move(glm::vec3 target) {
+    this->target = target;
 }
 
-void Camera::computeVectors() {
-    front.x = glm::cos(yaw) * glm::cos(pitch);
-    front.y = glm::sin(pitch);
-    front.z = glm::sin(yaw) * glm::cos(pitch);
-    front = glm::normalize(front);
-    right = glm::normalize(glm::cross(front, glm::vec3(0.0f, 1.0f, 0.0f)));
-    up = glm::normalize(glm::cross(right, front));
+void Camera::rotate(float deltaYaw, float deltaPitch) {
+    yaw += deltaYaw;
+    pitch = glm::clamp(pitch + deltaPitch, -glm::half_pi<float>() + 0.01f, glm::half_pi<float>() - 0.01f);
 }
 
-void Camera::moveX(float delta) {
-    position += front * speed * delta;
+void Camera::zoom(float deltaZoom) {
+    distance = glm::max(0.1f, distance + deltaZoom);
 }
 
-void Camera::moveY(float delta) {
-    position += right * speed * delta;
-}
-
-void Camera::moveMouse(float deltaX, float deltaY) {
-    yaw += deltaX * sensitivity;
-    pitch += deltaY * sensitivity;
-    pitch = glm::clamp(pitch, glm::radians(-89.0f), glm::radians(89.0f));
-    computeVectors();
+glm::vec3 Camera::getCameraPosition() const {
+    float x = distance * glm::cos(pitch) * glm::sin(yaw);
+    float y = distance * glm::sin(pitch);
+    float z = distance * glm::cos(pitch) * glm::cos(yaw);
+    return target + glm::vec3(x, y, z);
 }
 
 glm::mat4 Camera::getProjection(float aspectRatio) const {
@@ -42,5 +35,6 @@ glm::mat4 Camera::getProjection(float aspectRatio) const {
 }
 
 glm::mat4 Camera::getView() const {
-    return glm::lookAt(position, position + front, up);
+    glm::vec3 camPos = getCameraPosition();
+    return glm::lookAt(camPos, target, glm::vec3(0.0f, 1.0f, 0.0f));
 }
