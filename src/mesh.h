@@ -4,6 +4,7 @@
 #include <unordered_map>
 #include <vector>
 #include <string>
+#include <functional>
 
 struct Mesh {
     struct Material {
@@ -31,14 +32,10 @@ struct Mesh {
     std::vector<Face> faces;
     std::unordered_map<size_t, std::vector<size_t>> materialToFaces;
     std::unordered_map<size_t, std::vector<size_t>> groupToFaces;
-
-    // rendering
-    std::vector<float> materialKdUniform;
-    std::vector<float> materialDUniform;
+    std::vector<size_t> transparentFaces;
 
 private:
     void loadBase(const std::string &path, const std::string &mtlDir);
-    void loadRendering();
 
 public:
     void load(const std::string &path, const std::string &mtlDir);

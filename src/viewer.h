@@ -8,9 +8,15 @@
 
 class Viewer {
     GLuint shader;
-    GLuint VAO;
-    GLuint VBO;
-    GLuint EBO;
+    GLuint opaqueVao;
+    GLuint transparentVao;
+    GLuint transparentEbo;
+
+    std::vector<float> materialKdUniform;
+    std::vector<float> materialDUniform;
+    std::vector<float> vertexBuffer;
+    std::vector<unsigned int> opaqueBuffer;
+    std::vector<unsigned int> transparentBuffer;
 
     float clock;
 
@@ -18,7 +24,10 @@ class Viewer {
     Camera camera;
     Window window;
 
+    void createData();
     void createBuffers();
+
+    void sortTransparentFaces();
 public:
     Viewer(GLFWwindow* window, GLuint shader);
 

@@ -4,48 +4,97 @@
 
 Viewer::Viewer(GLFWwindow* window, GLuint shader) : shader {shader}, window {window} {}
 
-void Viewer::createBuffers() {
-    std::vector<float> vertexBuffer;
-    std::vector<unsigned int> elementBuffer;
+void Viewer::createData() {
+    materialKdUniform.clear();
+    materialDUniform.clear();
+    vertexBuffer.clear();
+    opaqueBuffer.clear();
+    transparentBuffer.clear();
 
+    materialKdUniform.reserve(3 * mesh.materials.size());
+    materialDUniform.reserve(mesh.materials.size());
+    for(size_t i = 0; i <  mesh.materials.size(); ++i) {
+        for(size_t j = 0; j < 3; ++j) materialKdUniform.emplace_back(mesh.materials[i].Kd[j]);
+        materialDUniform.emplace_back(mesh.materials[i].d);
+    }
+
+    size_t vtxCnt = 0;
     for(const auto &face : mesh.faces) {
         for(const auto &vtxIdx : face.vertices) {
             glm::vec3 vtx = mesh.vertices[vtxIdx];
             for(size_t i = 0; i < 3; ++i) vertexBuffer.emplace_back(vtx[i]);
             vertexBuffer.emplace_back(static_cast<float>(face.material));
+            ++vtxCnt;
         }
-        for(size_t i = 0; i < 3; ++i) elementBuffer.emplace_back(elementBuffer.size());
+        auto &buffer = mesh.materials[face.material].d < 1.0 ? transparentBuffer : opaqueBuffer;
+        for(size_t i = 0; i < 3; ++i) buffer.emplace_back(vtxCnt - 3 + i);
     }
+}
 
-    glGenVertexArrays(1, &VAO);
-    glGenBuffers(1, &VBO);
-    glGenBuffers(1, &EBO);
+void Viewer::createBuffers() {
+    unsigned int vbo, vaos[2], ebos[2];
 
-    glBindVertexArray(VAO);
+    glGenVertexArrays(2, vaos);
+    glGenBuffers(1, &vbo);
+    glGenBuffers(2, ebos);
 
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glBufferData(GL_ARRAY_BUFFER, sizeof(float) * vertexBuffer.size(), vertexBuffer.data(), GL_STATIC_DRAW);
 
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * elementBuffer.size(), elementBuffer.data(), GL_STATIC_DRAW);
-
+    // opaque VAO
+    glBindVertexArray(vaos[0]);
+    
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*) 0);
     glVertexAttribPointer(1, 1, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*) (3 * sizeof(float)));
     glEnableVertexAttribArray(0);
     glEnableVertexAttribArray(1);
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebos[0]);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * opaqueBuffer.size(), opaqueBuffer.data(), GL_STATIC_DRAW);
+
+    // transparent VAO
+    glBindVertexArray(vaos[1]);
+
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*) 0);
+    glVertexAttribPointer(1, 1, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*) (3 * sizeof(float)));
+    glEnableVertexAttribArray(0);
+    glEnableVertexAttribArray(1);
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebos[1]);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * transparentBuffer.size(), transparentBuffer.data(), GL_STREAM_DRAW);
+
+    glBindVertexArray(0);
+
+    opaqueVao = vaos[0];
+    transparentVao = vaos[1];
+    transparentEbo = ebos[1];
+}
+
+void Viewer::sortTransparentFaces() {
+    std::vector<size_t> faces = mesh.transparentFaces;
+    std::sort(faces.begin(), faces.end(), [&](auto i1, auto i2) {
+        const auto &face1 = mesh.faces[i1];
+        const auto &face2 = mesh.faces[i2];
+        glm::vec3 centroid1 = (mesh.vertices[face1.vertices[0]] + mesh.vertices[face1.vertices[1]] + mesh.vertices[face1.vertices[2]]) / 3.0f;
+        glm::vec3 centroid2 = (mesh.vertices[face2.vertices[0]] + mesh.vertices[face2.vertices[1]] + mesh.vertices[face2.vertices[2]]) / 3.0f;
+        return glm::length(camera.getCameraPosition() - centroid1) > glm::length(camera.getCameraPosition() - centroid2);
+    }); 
+
+    transparentBuffer.clear();
+    for(auto faceIdx : faces) {
+        for(size_t i = 0; i < 3; ++i) transparentBuffer.emplace_back(3 * faceIdx + i);
+    }
 }
 
 void Viewer::init(const std::string &path, const std::string &mtlDir) {
     mesh.load(path, mtlDir);
+    createData();
     createBuffers();
 
-    glDisable(GL_CULL_FACE);
-    glEnable(GL_DEPTH_TEST);
-
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
     camera = Camera(mesh.center, mesh.radius * 1.15f, 0.0f, 0.0f, glm::radians(60.0f));
+
     clock = glfwGetTime();
 }
 
@@ -75,8 +124,8 @@ void Viewer::render() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     glUseProgram(shader);
-    glUniform3fv(glGetUniformLocation(shader, "matKd"), mesh.materialKdUniform.size(), mesh.materialKdUniform.data());
-    glUniform1fv(glGetUniformLocation(shader, "matD"), mesh.materialDUniform.size(), mesh.materialDUniform.data());
+    glUniform3fv(glGetUniformLocation(shader, "matKd"), materialKdUniform.size(), materialKdUniform.data());
+    glUniform1fv(glGetUniformLocation(shader, "matD"), materialDUniform.size(), materialDUniform.data());
     
     glm::mat4 projection = camera.getProjection(window.getAspectRatio());
     glUniformMatrix4fv(glGetUniformLocation(shader, "projection"), 1, GL_FALSE, &projection[0][0]);
@@ -84,6 +133,29 @@ void Viewer::render() {
     glm::mat4 view = camera.getView();
     glUniformMatrix4fv(glGetUniformLocation(shader, "view"), 1, GL_FALSE, &view[0][0]);
 
-    glBindVertexArray(VAO);
-    glDrawElements(GL_TRIANGLES, 3 * mesh.faces.size(), GL_UNSIGNED_INT, 0);
+    glEnable(GL_DEPTH_TEST);
+
+    // draw opaque
+    glBindVertexArray(opaqueVao);
+    glDepthMask(GL_TRUE);
+    glDisable(GL_BLEND);
+    glEnable(GL_CULL_FACE);
+
+    glDrawElements(GL_TRIANGLES, opaqueBuffer.size(), GL_UNSIGNED_INT, 0);
+
+    // draw transparent
+    sortTransparentFaces();
+
+    glBindVertexArray(transparentVao);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, transparentEbo);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * transparentBuffer.size(), transparentBuffer.data(), GL_STREAM_DRAW);
+    
+    glDepthMask(GL_FALSE);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glDisable(GL_CULL_FACE);
+
+    glDrawElements(GL_TRIANGLES, transparentBuffer.size(), GL_UNSIGNED_INT, 0);
+
+    glDepthMask(GL_TRUE);
 }

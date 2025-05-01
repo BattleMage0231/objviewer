@@ -18,7 +18,7 @@ void Mesh::loadBase(const std::string &path, const std::string &mtlDir) {
     const auto& objShapes = reader.GetShapes();
     const auto& objMaterials = reader.GetMaterials();
 
-    materials.emplace_back(Material {"none", glm::vec3(0.0f, 0.0f, 0.0f), 0.0f});
+    materials.emplace_back(Material {"none", glm::vec3(0.0f, 0.0f, 0.0f), 1.0f});
     for(const auto &mat : objMaterials) {
         glm::vec3 Kd(mat.diffuse[0], mat.diffuse[1], mat.diffuse[2]);
         materials.emplace_back(Material {mat.name, Kd, mat.dissolve });
@@ -48,18 +48,14 @@ void Mesh::loadBase(const std::string &path, const std::string &mtlDir) {
             }
 
             faces.emplace_back(std::move(face));
+
             materialToFaces[face.material].emplace_back(faces.size() - 1);
             groupToFaces[face.group].emplace_back(faces.size() - 1);
-        }
-    }
-}
 
-void Mesh::loadRendering() {
-    materialKdUniform.reserve(3 * materials.size());
-    materialDUniform.reserve(materials.size());
-    for(size_t i = 0; i < materials.size(); ++i) {
-        for(size_t j = 0; j < 3; ++j) materialKdUniform.emplace_back(materials[i].Kd[j]);
-        materialDUniform.emplace_back(materials[i].d);
+            if(materials[face.material].d < 1.0) {
+                transparentFaces.emplace_back(faces.size() - 1);
+            }
+        }
     }
 }
 
@@ -70,9 +66,7 @@ void Mesh::load(const std::string &path, const std::string &mtlDir) {
     faces.clear();
     materialToFaces.clear();
     groupToFaces.clear();
-    materialKdUniform.clear();
-    materialDUniform.clear();
+    transparentFaces.clear();
 
     loadBase(path, mtlDir);
-    loadRendering();
 }
