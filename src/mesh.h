@@ -9,12 +9,17 @@
 struct Mesh {
     struct Material {
         std::string name;
+        glm::vec3 Ka;
         glm::vec3 Kd;
+        glm::vec3 Ks;
+        glm::vec3 Ke;
+        float Ns;
         float d;
     };
     
     struct Face {
         std::vector<size_t> vertices;
+        std::vector<glm::vec3> normals;
         size_t material;
         size_t group;
     };

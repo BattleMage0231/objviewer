@@ -5,24 +5,41 @@
 Viewer::Viewer(GLFWwindow* window, GLuint shader) : shader {shader}, window {window} {}
 
 void Viewer::createData() {
+    materialKaUniform.clear();
     materialKdUniform.clear();
+    materialKsUniform.clear();
+    materialKeUniform.clear();
+    materialNsUniform.clear();
     materialDUniform.clear();
     vertexBuffer.clear();
     opaqueBuffer.clear();
     transparentBuffer.clear();
 
+    materialKaUniform.reserve(3 * mesh.materials.size());
     materialKdUniform.reserve(3 * mesh.materials.size());
+    materialKsUniform.reserve(3 * mesh.materials.size());
+    materialKeUniform.reserve(3 * mesh.materials.size());
+    materialNsUniform.reserve(mesh.materials.size());
     materialDUniform.reserve(mesh.materials.size());
-    for(size_t i = 0; i <  mesh.materials.size(); ++i) {
-        for(size_t j = 0; j < 3; ++j) materialKdUniform.emplace_back(mesh.materials[i].Kd[j]);
+
+    for(size_t i = 0; i < mesh.materials.size(); ++i) {
+        for(size_t j = 0; j < 3; ++j) {
+            materialKaUniform.emplace_back(mesh.materials[i].Ka[j]);
+            materialKdUniform.emplace_back(mesh.materials[i].Kd[j]);
+            materialKsUniform.emplace_back(mesh.materials[i].Ks[j]);
+            materialKeUniform.emplace_back(mesh.materials[i].Ke[j]);
+        }
+        materialNsUniform.emplace_back(mesh.materials[i].Ns);
         materialDUniform.emplace_back(mesh.materials[i].d);
     }
 
     size_t vtxCnt = 0;
     for(const auto &face : mesh.faces) {
-        for(const auto &vtxIdx : face.vertices) {
-            glm::vec3 vtx = mesh.vertices[vtxIdx];
+        for(size_t i = 0; i < face.vertices.size(); ++i) {
+            glm::vec3 vtx = mesh.vertices[face.vertices[i]];
+            glm::vec3 norm = face.normals[i];
             for(size_t i = 0; i < 3; ++i) vertexBuffer.emplace_back(vtx[i]);
+            for(size_t i = 0; i < 3; ++i) vertexBuffer.emplace_back(norm[i]);
             vertexBuffer.emplace_back(static_cast<float>(face.material));
             ++vtxCnt;
         }
@@ -45,10 +62,12 @@ void Viewer::createBuffers() {
     glBindVertexArray(vaos[0]);
     
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*) 0);
-    glVertexAttribPointer(1, 1, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*) (3 * sizeof(float)));
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 7 * sizeof(float), (void*) 0);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 7 * sizeof(float), (void*) (3 * sizeof(float)));
+    glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE, 7 * sizeof(float), (void*) (6 * sizeof(float)));
     glEnableVertexAttribArray(0);
     glEnableVertexAttribArray(1);
+    glEnableVertexAttribArray(2);
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebos[0]);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * opaqueBuffer.size(), opaqueBuffer.data(), GL_STATIC_DRAW);
@@ -57,10 +76,12 @@ void Viewer::createBuffers() {
     glBindVertexArray(vaos[1]);
 
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*) 0);
-    glVertexAttribPointer(1, 1, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*) (3 * sizeof(float)));
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 7 * sizeof(float), (void*) 0);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 7 * sizeof(float), (void*) (3 * sizeof(float)));
+    glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE, 7 * sizeof(float), (void*) (6 * sizeof(float)));
     glEnableVertexAttribArray(0);
     glEnableVertexAttribArray(1);
+    glEnableVertexAttribArray(2);
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebos[1]);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * transparentBuffer.size(), transparentBuffer.data(), GL_STREAM_DRAW);
@@ -79,7 +100,7 @@ void Viewer::sortTransparentFaces() {
         const auto &face2 = mesh.faces[i2];
         glm::vec3 centroid1 = (mesh.vertices[face1.vertices[0]] + mesh.vertices[face1.vertices[1]] + mesh.vertices[face1.vertices[2]]) / 3.0f;
         glm::vec3 centroid2 = (mesh.vertices[face2.vertices[0]] + mesh.vertices[face2.vertices[1]] + mesh.vertices[face2.vertices[2]]) / 3.0f;
-        return glm::length(camera.getCameraPosition() - centroid1) > glm::length(camera.getCameraPosition() - centroid2);
+        return glm::length(camera.getPosition() - centroid1) > glm::length(camera.getPosition() - centroid2);
     }); 
 
     transparentBuffer.clear();
@@ -124,14 +145,23 @@ void Viewer::render() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     glUseProgram(shader);
-    glUniform3fv(glGetUniformLocation(shader, "matKd"), materialKdUniform.size(), materialKdUniform.data());
-    glUniform1fv(glGetUniformLocation(shader, "matD"), materialDUniform.size(), materialDUniform.data());
     
     glm::mat4 projection = camera.getProjection(window.getAspectRatio());
     glUniformMatrix4fv(glGetUniformLocation(shader, "projection"), 1, GL_FALSE, &projection[0][0]);
 
     glm::mat4 view = camera.getView();
     glUniformMatrix4fv(glGetUniformLocation(shader, "view"), 1, GL_FALSE, &view[0][0]);
+
+    glUniform3fv(glGetUniformLocation(shader, "matKa"), materialKaUniform.size(), materialKaUniform.data());
+    glUniform3fv(glGetUniformLocation(shader, "matKd"), materialKdUniform.size(), materialKdUniform.data());
+    glUniform3fv(glGetUniformLocation(shader, "matKs"), materialKsUniform.size(), materialKsUniform.data());
+    glUniform3fv(glGetUniformLocation(shader, "matKe"), materialKeUniform.size(), materialKeUniform.data());
+    glUniform1fv(glGetUniformLocation(shader, "matNs"), materialNsUniform.size(), materialNsUniform.data());
+    glUniform1fv(glGetUniformLocation(shader, "matD"), materialDUniform.size(), materialDUniform.data());
+
+    glm::vec3 cameraPos = camera.getPosition();
+    glUniform3f(glGetUniformLocation(shader, "viewPos"), cameraPos[0], cameraPos[1], cameraPos[2]);
+    glUniform3f(glGetUniformLocation(shader, "lightPos"), cameraPos[0], cameraPos[1], cameraPos[2]);
 
     glEnable(GL_DEPTH_TEST);
 

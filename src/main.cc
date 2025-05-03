@@ -34,7 +34,10 @@ GLuint createShaderProgram() {
 
         glGetShaderiv(ids[i], GL_COMPILE_STATUS, &success);
         if(!success) {
-            std::cerr << "compilation of shader at path " << paths[i] << " failed" << std::endl;
+            char infoLog[1024];
+            glGetShaderInfoLog(ids[i], sizeof(infoLog), nullptr, infoLog);
+
+            std::cerr << "compilation of shader at path " << paths[i] << " failed: " << infoLog << std::endl;
             for(size_t j = 0; j < i; ++j) glDeleteShader(ids[j]);
             throw std::runtime_error {""};
         }

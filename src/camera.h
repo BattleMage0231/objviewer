@@ -19,7 +19,7 @@ public:
     void rotate(float deltaYaw, float deltaPitch);
     void zoom(float deltaZoom);
 
-    glm::vec3 getCameraPosition() const;
+    glm::vec3 getPosition() const;
     glm::mat4 getProjection(float aspectRatio) const;
     glm::mat4 getView() const;
 };

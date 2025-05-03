@@ -23,7 +23,7 @@ void Camera::zoom(float deltaZoom) {
     distance = glm::max(0.1f, distance + deltaZoom);
 }
 
-glm::vec3 Camera::getCameraPosition() const {
+glm::vec3 Camera::getPosition() const {
     float x = distance * glm::cos(pitch) * glm::sin(yaw);
     float y = distance * glm::sin(pitch);
     float z = distance * glm::cos(pitch) * glm::cos(yaw);
@@ -39,6 +39,6 @@ glm::mat4 Camera::getProjection(float aspectRatio) const {
 }
 
 glm::mat4 Camera::getView() const {
-    glm::vec3 camPos = getCameraPosition();
+    glm::vec3 camPos = getPosition();
     return glm::lookAt(camPos, target, glm::vec3(0.0f, 1.0f, 0.0f));
 }

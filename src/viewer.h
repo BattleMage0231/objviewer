@@ -12,7 +12,11 @@ class Viewer {
     GLuint transparentVao;
     GLuint transparentEbo;
 
+    std::vector<float> materialKaUniform;
     std::vector<float> materialKdUniform;
+    std::vector<float> materialKsUniform;
+    std::vector<float> materialKeUniform;
+    std::vector<float> materialNsUniform;
     std::vector<float> materialDUniform;
     std::vector<float> vertexBuffer;
     std::vector<unsigned int> opaqueBuffer;
