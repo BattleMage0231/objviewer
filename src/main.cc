@@ -1,5 +1,8 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
+#include <imgui.h>
+#include <backends/imgui_impl_glfw.h>
+#include <backends/imgui_impl_opengl3.h>
 #include <iostream>
 #include <exception>
 #include <filesystem>
@@ -8,7 +11,7 @@
 #define TINYOBJLOADER_IMPLEMENTATION
 #include <tiny_obj_loader.h>
 
-const int startWidth = 1000;
+const int startWidth = 1200;
 const int startHeight = 800;
 const std::string vertexPath = "../shaders/vertex.glsl";
 const std::string fragmentPath = "../shaders/fragment.glsl";
@@ -75,7 +78,7 @@ int main(int argc, char *argv[]) {
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-    GLFWwindow* window = glfwCreateWindow(startWidth, startHeight, "objviewer", NULL, NULL);
+    GLFWwindow* window = glfwCreateWindow(startWidth, startHeight, "objviewer", nullptr, nullptr);
     if(window == NULL) {
         std::cerr << "window creation failed" << std::endl;
         glfwTerminate();
@@ -89,6 +92,13 @@ int main(int argc, char *argv[]) {
         return -1;
     }
 
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGuiIO io = ImGui::GetIO();
+
+    ImGui_ImplGlfw_InitForOpenGL(window, true);
+    ImGui_ImplOpenGL3_Init("#version 330");
+
     GLuint shaderId = createShaderProgram();
     Viewer viewer {window, shaderId};
 
@@ -97,14 +107,28 @@ int main(int argc, char *argv[]) {
     viewer.init(filePath, dirPath);
 
     while(!glfwWindowShouldClose(window)) {
+        glfwPollEvents();
+
+        ImGui_ImplOpenGL3_NewFrame();
+        ImGui_ImplGlfw_NewFrame();
+        ImGui::NewFrame();
+
         viewer.update();
         viewer.render();
 
+        ImGui::Render();
+        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
         glfwSwapBuffers(window);
-        glfwPollEvents();
     }
 
     glDeleteProgram(shaderId);
+
+    ImGui_ImplOpenGL3_Shutdown();
+    ImGui_ImplGlfw_Shutdown();
+    ImGui::DestroyContext();
+    glfwDestroyWindow(window);
     glfwTerminate();
+    
     return 0;
 }

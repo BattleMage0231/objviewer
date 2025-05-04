@@ -6,7 +6,7 @@ static void mouseCallback(GLFWwindow* window, double xPos, double yPos) {
     if(c) c->handleMouseEvent(xPos, yPos);
 }
 
-static void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
+static void keyCallback(GLFWwindow* window, int key, int, int action, int) {
     Window* c = static_cast<Window*>(glfwGetWindowUserPointer(window));
     if(c) c->handleKeyEvent(key, action);
 }
