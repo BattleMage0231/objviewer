@@ -1,5 +1,6 @@
 #include "viewer.h"
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/norm.hpp>
 #include <iostream>
 
 Viewer::Viewer(GLFWwindow* window, GLuint shader) : shader {shader}, window {window} {}
@@ -36,7 +37,7 @@ void Viewer::createData() {
     size_t vtxCnt = 0;
     for(const auto &face : mesh.faces) {
         for(size_t i = 0; i < face.vertices.size(); ++i) {
-            glm::vec3 vtx = mesh.vertices[face.vertices[i]];
+            glm::vec3 vtx = face.vertices[i];
             glm::vec3 norm = face.normals[i];
             for(size_t i = 0; i < 3; ++i) vertexBuffer.emplace_back(vtx[i]);
             for(size_t i = 0; i < 3; ++i) vertexBuffer.emplace_back(norm[i]);
@@ -96,11 +97,10 @@ void Viewer::createBuffers() {
 void Viewer::sortTransparentFaces() {
     std::vector<size_t> faces = mesh.transparentFaces;
     std::sort(faces.begin(), faces.end(), [&](auto i1, auto i2) {
-        const auto &face1 = mesh.faces[i1];
-        const auto &face2 = mesh.faces[i2];
-        glm::vec3 centroid1 = (mesh.vertices[face1.vertices[0]] + mesh.vertices[face1.vertices[1]] + mesh.vertices[face1.vertices[2]]) / 3.0f;
-        glm::vec3 centroid2 = (mesh.vertices[face2.vertices[0]] + mesh.vertices[face2.vertices[1]] + mesh.vertices[face2.vertices[2]]) / 3.0f;
-        return glm::length(camera.getPosition() - centroid1) > glm::length(camera.getPosition() - centroid2);
+        glm::vec3 pos = camera.getPosition();
+        float length1 = glm::length2(pos - mesh.faces[i1].centroid);
+        float length2 = glm::length2(pos - mesh.faces[i2].centroid);
+        return length1 > length2;
     }); 
 
     transparentBuffer.clear();
@@ -109,12 +109,28 @@ void Viewer::sortTransparentFaces() {
     }
 }
 
+glm::mat4 Viewer::getProjectionMatrix() const {
+    glm::vec3 cameraPos = camera.getPosition();
+    float distToCentroid = glm::length(cameraPos - mesh.centroid);
+    float nearClip, farClip;
+    if(distToCentroid >= mesh.radius) {
+        nearClip = distToCentroid - mesh.radius;
+        farClip = distToCentroid + mesh.radius;
+    } else {
+        nearClip = 0.1f;
+        farClip = glm::max(nearClip + 0.1f, 2.0f * mesh.radius);
+    }
+    nearClip *= 0.9f;
+    farClip = glm::max(nearClip, farClip) + 0.1f;
+    return glm::perspective(glm::radians(60.0f), window.getAspectRatio(), nearClip, farClip);
+}
+
 void Viewer::init(const std::string &path, const std::string &mtlDir) {
     mesh.load(path, mtlDir);
     createData();
     createBuffers();
 
-    camera = Camera(mesh.center, mesh.radius * 1.15f, 0.0f, 0.0f, glm::radians(60.0f));
+    camera = Camera(mesh.centroid, mesh.radius * 1.15f, 0.0f, 0.0f);
 
     clock = glfwGetTime();
 }
@@ -146,7 +162,7 @@ void Viewer::render() {
 
     glUseProgram(shader);
     
-    glm::mat4 projection = camera.getProjection(window.getAspectRatio());
+    glm::mat4 projection = getProjectionMatrix();
     glUniformMatrix4fv(glGetUniformLocation(shader, "projection"), 1, GL_FALSE, &projection[0][0]);
 
     glm::mat4 view = camera.getView();
@@ -161,7 +177,9 @@ void Viewer::render() {
 
     glm::vec3 cameraPos = camera.getPosition();
     glUniform3f(glGetUniformLocation(shader, "viewPos"), cameraPos[0], cameraPos[1], cameraPos[2]);
-    glUniform3f(glGetUniformLocation(shader, "lightPos"), cameraPos[0], cameraPos[1], cameraPos[2]);
+    
+    glm::vec3 lightPos = cameraPos;
+    glUniform3f(glGetUniformLocation(shader, "lightPos"), lightPos[0], lightPos[1], lightPos[2]);
 
     glEnable(GL_DEPTH_TEST);
 
@@ -169,7 +187,6 @@ void Viewer::render() {
     glBindVertexArray(opaqueVao);
     glDepthMask(GL_TRUE);
     glDisable(GL_BLEND);
-    glEnable(GL_CULL_FACE);
 
     glDrawElements(GL_TRIANGLES, opaqueBuffer.size(), GL_UNSIGNED_INT, 0);
 
@@ -183,7 +200,6 @@ void Viewer::render() {
     glDepthMask(GL_FALSE);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glDisable(GL_CULL_FACE);
 
     glDrawElements(GL_TRIANGLES, transparentBuffer.size(), GL_UNSIGNED_INT, 0);
 

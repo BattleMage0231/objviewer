@@ -2,40 +2,36 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
 
-Camera::Camera(glm::vec3 target, float distance, float yaw, float pitch, float fov) :
-    target {target},
+Camera::Camera(glm::vec3 target, float distance, float yaw, float pitch) :
+    target {std::move(target)},
     distance {distance},
     yaw {yaw},
-    pitch {pitch},
-    fov {fov}
+    pitch {pitch}
 {}
 
 void Camera::move(glm::vec3 target) {
     this->target = target;
+    position = std::nullopt;
 }
 
 void Camera::rotate(float deltaYaw, float deltaPitch) {
     yaw += deltaYaw;
     pitch = glm::clamp(pitch + deltaPitch, -glm::half_pi<float>() + 0.01f, glm::half_pi<float>() - 0.01f);
+    position = std::nullopt;
 }
 
 void Camera::zoom(float deltaZoom) {
     distance = glm::max(0.1f, distance + deltaZoom);
+    position = std::nullopt;
 }
 
 glm::vec3 Camera::getPosition() const {
+    if(position) return *position;
     float x = distance * glm::cos(pitch) * glm::sin(yaw);
     float y = distance * glm::sin(pitch);
     float z = distance * glm::cos(pitch) * glm::cos(yaw);
-    return target + glm::vec3(x, y, z);
-}
-
-glm::mat4 Camera::getProjection(float aspectRatio) const {
-    float nearClip = distance * 0.01f;
-    float farClip = distance * 10.0f;
-    nearClip = glm::max(nearClip, 0.1f);
-    farClip = glm::max(farClip, nearClip * 2.0f);
-    return glm::perspective(fov, aspectRatio, nearClip, farClip);
+    position = target + glm::vec3(x, y, z);
+    return *position;
 }
 
 glm::mat4 Camera::getView() const {

@@ -20,11 +20,11 @@ out vec4 color;
 void main() {
     int id = int(matId + 0.5);
 
-    vec3 ambient = 0.3 * matKa[id];
+    vec3 ambient = 0.5 * matKa[id];
 
     vec3 norm = normalize(normal);
     vec3 lightDir = normalize(lightPos - pos);
-    vec3 diffuse = max(dot(norm, lightDir), 0.0) * matKd[id];
+    vec3 diffuse = 1.0 * max(dot(norm, lightDir), 0.0) * matKd[id];
 
     vec3 viewDir = normalize(viewPos - pos);
     vec3 reflectDir = reflect(-lightDir, norm);

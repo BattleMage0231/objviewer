@@ -32,6 +32,8 @@ class Viewer {
     void createBuffers();
 
     void sortTransparentFaces();
+
+    glm::mat4 getProjectionMatrix() const;
 public:
     Viewer(GLFWwindow* window, GLuint shader);
 

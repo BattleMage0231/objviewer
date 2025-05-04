@@ -18,22 +18,21 @@ struct Mesh {
     };
     
     struct Face {
-        std::vector<size_t> vertices;
+        std::vector<glm::vec3> vertices;
         std::vector<glm::vec3> normals;
+        glm::vec3 centroid;
         size_t material;
         size_t group;
     };
 
     std::vector<Material> materials;
     std::vector<std::string> groups;
-    std::vector<glm::vec3> vertices;
 
     glm::vec3 min;
     glm::vec3 max;
-    glm::vec3 center;
+    glm::vec3 centroid;
     float radius;
 
-    // surface view
     std::vector<Face> faces;
     std::unordered_map<size_t, std::vector<size_t>> materialToFaces;
     std::unordered_map<size_t, std::vector<size_t>> groupToFaces;

@@ -1,19 +1,20 @@
 #pragma once
 
 #include <glm/glm.hpp>
+#include <optional>
 
 class Camera {
     glm::vec3 target;
     float distance;
     float yaw;
     float pitch;
-    float fov;
+    mutable std::optional<glm::vec3> position;
 
     void computeVectors();
 
 public:
     Camera() {}
-    Camera(glm::vec3 target, float distance, float yaw, float pitch, float fov);
+    Camera(glm::vec3 target, float distance, float yaw, float pitch);
 
     void move(glm::vec3 target);
     void rotate(float deltaYaw, float deltaPitch);

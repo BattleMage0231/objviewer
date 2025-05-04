@@ -33,12 +33,12 @@ void Mesh::loadBase(const std::string &path, const std::string &mtlDir) {
     min = glm::vec3(1.0e9, 1.0e9, 1.0e9);
     max = glm::vec3(-1.0e9, -1.0e9, -1.0e9);
     for(size_t i = 0; i < objVertices.size(); i += 3) {
-        vertices.emplace_back(objVertices[i], objVertices[i + 1], objVertices[i + 2]);
-        min = glm::min(min, vertices.back());
-        max = glm::max(max, vertices.back());
+        glm::vec3 vtx(objVertices[i], objVertices[i + 1], objVertices[i + 2]);
+        min = glm::min(min, vtx);
+        max = glm::max(max, vtx);
     }
-    center = (min + max) * 0.5f;
-    radius = glm::max(glm::length(max - center), glm::length(min - center));
+    centroid = (min + max) * 0.5f;
+    radius = glm::max(glm::length(max - centroid), glm::length(min - centroid));
 
     for(const auto &shape : objShapes) {
         groups.emplace_back(shape.name);
@@ -50,14 +50,34 @@ void Mesh::loadBase(const std::string &path, const std::string &mtlDir) {
 
             for(size_t v = 0; v < 3; ++v) {
                 int vertexIndex = shape.mesh.indices[3 * f + v].vertex_index;
-                face.vertices.emplace_back(vertexIndex);
-
-                int normalIndex = shape.mesh.indices[3 * f + v].normal_index;
-                glm::vec3 normal;
-                for(size_t w = 0; w < 3; ++w) {
-                    normal[w] = objNormals[3 * normalIndex + w];
+                if(vertexIndex >= 0) {
+                    glm::vec3 vtx;
+                    for(size_t w = 0; w < 3; ++w) {
+                        vtx[w] = objVertices[3 * vertexIndex + w];
+                    }
+                    face.vertices.emplace_back(std::move(vtx));
+                } else {
+                    face.vertices.emplace_back(0.0, 0.0, 0.0);
                 }
-                face.normals.emplace_back(normal);
+            }
+
+            glm::vec3 v0 = face.vertices[face.vertices.size() - 3];
+            glm::vec3 v1 = face.vertices[face.vertices.size() - 2];
+            glm::vec3 v2 = face.vertices[face.vertices.size() - 1];
+            face.centroid = (v0 + v1 + v2) / 3.0f;
+            glm::vec3 defaultNormal = glm::cross(v1 - v0, v2 - v0);
+
+            for(size_t v = 0; v < 3; ++v) {
+                int normalIndex = shape.mesh.indices[3 * f + v].normal_index;
+                if(normalIndex >= 0) {
+                    glm::vec3 normal;
+                    for(size_t w = 0; w < 3; ++w) {
+                        normal[w] = objNormals[3 * normalIndex + w];
+                    }
+                    face.normals.emplace_back(std::move(normal));
+                } else {
+                    face.normals.emplace_back(defaultNormal);
+                }
             }
 
             faces.emplace_back(std::move(face));
@@ -75,7 +95,6 @@ void Mesh::loadBase(const std::string &path, const std::string &mtlDir) {
 void Mesh::load(const std::string &path, const std::string &mtlDir) {
     materials.clear();
     groups.clear();
-    vertices.clear();
     faces.clear();
     materialToFaces.clear();
     groupToFaces.clear();
