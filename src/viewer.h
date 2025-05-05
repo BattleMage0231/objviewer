@@ -22,18 +22,25 @@ class Viewer {
     std::vector<unsigned int> opaqueBuffer;
     std::vector<unsigned int> transparentBuffer;
 
-    float clock;
-
     Mesh mesh;
     Camera camera;
     Window window;
+
+    float clock;
+
+    std::optional<size_t> selectedGroup;
+    std::vector<bool> isGroupVisible;
 
     void createData();
     void createBuffers();
 
     void sortTransparentFaces();
 
+    int getPanelWidth() const;
     glm::mat4 getProjectionMatrix() const;
+
+    void renderUI();
+    void renderViewer();
 public:
     Viewer(GLFWwindow* window, GLuint shader);
 

@@ -1,4 +1,5 @@
 #include "viewer.h"
+#include <imgui.h>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/norm.hpp>
 #include <iostream>
@@ -109,6 +110,11 @@ void Viewer::sortTransparentFaces() {
     }
 }
 
+int Viewer::getPanelWidth() const {
+    int width = static_cast<int>(window.width * 0.12f);
+    return glm::max(width, 100);
+}
+
 glm::mat4 Viewer::getProjectionMatrix() const {
     glm::vec3 cameraPos = camera.getPosition();
     float distToCentroid = glm::length(cameraPos - mesh.centroid);
@@ -122,7 +128,8 @@ glm::mat4 Viewer::getProjectionMatrix() const {
     }
     nearClip *= 0.9f;
     farClip = glm::max(nearClip, farClip) + 0.1f;
-    return glm::perspective(glm::radians(60.0f), window.getAspectRatio(), nearClip, farClip);
+    float aspectRatio = (static_cast<float>(window.width) - 2 * getPanelWidth()) / window.height;
+    return glm::perspective(glm::radians(60.0f), aspectRatio, nearClip, farClip);
 }
 
 void Viewer::init(const std::string &path, const std::string &mtlDir) {
@@ -130,7 +137,10 @@ void Viewer::init(const std::string &path, const std::string &mtlDir) {
     createData();
     createBuffers();
 
-    camera = Camera(mesh.centroid, mesh.radius * 1.15f, 0.0f, 0.0f);
+    selectedGroup = std::nullopt;
+    isGroupVisible = std::vector<bool>(mesh.groups.size(), true);
+
+    camera = Camera(mesh.centroid, mesh.radius * 2.0f, 0.0f, 0.0f);
 
     clock = glfwGetTime();
 }
@@ -156,7 +166,71 @@ void Viewer::update() {
     clock = now;
 }
 
-void Viewer::render() {
+void Viewer::renderUI() {
+    int panelWidth = getPanelWidth();
+    float dummyValue = 0.5f;
+
+    ImGui::SetNextWindowPos(ImVec2(0, 0));
+    ImGui::SetNextWindowSize(ImVec2((float) panelWidth, (float) ImGui::GetIO().DisplaySize.y));
+    ImGui::Begin("Groups", nullptr,
+        ImGuiWindowFlags_NoTitleBar |
+        ImGuiWindowFlags_NoResize |
+        ImGuiWindowFlags_NoMove |
+        ImGuiWindowFlags_NoCollapse);
+    
+    ImGui::Text("Groups");
+
+    for(size_t i = 0; i < mesh.groups.size(); ++i) {
+        ImGui::PushID(i); 
+
+        ImVec4 color = isGroupVisible[i] 
+            ? ImVec4(0.2f, 0.8f, 0.2f, 1.0f) // green
+            : ImVec4(0.8f, 0.2f, 0.2f, 1.0f); // red
+
+        ImGui::PushStyleColor(ImGuiCol_Button, color);
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, color);
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, color);
+
+        if(ImGui::Button("##visBtn", ImVec2(20, 0))) {
+            isGroupVisible[i] = !isGroupVisible[i];
+        }
+
+        ImGui::PopStyleColor(3);
+
+        ImGui::SameLine(40);
+        
+        bool isSelected = (selectedGroup.has_value() && *selectedGroup == i);
+        if(ImGui::Selectable(mesh.groups[i].c_str(), isSelected, ImGuiSelectableFlags_AllowDoubleClick)) {
+            if(isSelected) selectedGroup = std::nullopt;
+            else selectedGroup = i;
+        }
+
+        ImGui::PopID();
+    }
+
+    ImGui::End();
+
+    // Right panel
+    int fbWidth = window.width;
+    int fbHeight = window.height;
+
+    ImGui::SetNextWindowPos(ImVec2((float)(fbWidth - panelWidth), 0));
+    ImGui::SetNextWindowSize(ImVec2((float)panelWidth, (float)fbHeight));
+    ImGui::Begin("Right Panel", nullptr,
+                 ImGuiWindowFlags_NoTitleBar |
+                 ImGuiWindowFlags_NoResize |
+                 ImGuiWindowFlags_NoMove |
+                 ImGuiWindowFlags_NoCollapse);
+
+    ImGui::Text("Settings");
+    ImGui::SliderFloat("Dummy Slider", &dummyValue, 0.0f, 1.0f);
+
+    ImGui::End();
+}
+
+void Viewer::renderViewer() {
+    glViewport(getPanelWidth(), 0, window.width - 2 * getPanelWidth(), window.height);
+
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -204,4 +278,9 @@ void Viewer::render() {
     glDrawElements(GL_TRIANGLES, transparentBuffer.size(), GL_UNSIGNED_INT, 0);
 
     glDepthMask(GL_TRUE);
+}
+
+void Viewer::render() {
+    renderUI();
+    renderViewer();
 }
