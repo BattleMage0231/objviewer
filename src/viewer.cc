@@ -3,6 +3,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/norm.hpp>
 #include <iostream>
+#include <algorithm>
 
 Viewer::Viewer(GLFWwindow* window, GLuint shader) : shader {shader}, window {window} {}
 
@@ -185,12 +186,21 @@ void Viewer::renderUI() {
     
     ImGui::Text("Groups");
 
+    auto count = std::count(isGroupVisible.cbegin(), isGroupVisible.cend(), 1);
+    if(ImGui::Button(count > 0 ? "Hide All" : "Show All")) {
+        if(count > 0) {
+            std::fill(isGroupVisible.begin(), isGroupVisible.end(), 0);
+        } else {
+            std::fill(isGroupVisible.begin(), isGroupVisible.end(), 1);
+        }
+    }
+
     for(size_t i = 0; i < mesh.groups.size(); ++i) {
         ImGui::PushID(i); 
 
         ImVec4 color = (isGroupVisible[i] == 1) 
-            ? ImVec4(0.2f, 0.8f, 0.2f, 1.0f) // green
-            : ImVec4(0.8f, 0.2f, 0.2f, 1.0f); // red
+            ? ImVec4(0.2f, 0.8f, 0.2f, 1.0f)
+            : ImVec4(0.8f, 0.2f, 0.2f, 1.0f);
 
         ImGui::PushStyleColor(ImGuiCol_Button, color);
         ImGui::PushStyleColor(ImGuiCol_ButtonHovered, color);
@@ -204,7 +214,7 @@ void Viewer::renderUI() {
 
         ImGui::SameLine(40);
         
-        bool isSelected = (selectedGroup == i);
+        bool isSelected = (selectedGroup == static_cast<int>(i));
         if(ImGui::Selectable(mesh.groups[i].c_str(), isSelected, ImGuiSelectableFlags_AllowDoubleClick)) {
             selectedGroup = isSelected ? -1 : i;
         }

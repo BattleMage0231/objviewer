@@ -10,8 +10,6 @@ class Camera {
     float pitch;
     mutable std::optional<glm::vec3> position;
 
-    void computeVectors();
-
 public:
     Camera() {}
     Camera(glm::vec3 target, float distance, float yaw, float pitch);

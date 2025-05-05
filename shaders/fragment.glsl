@@ -22,14 +22,7 @@ uniform vec3 viewPos;
 
 out vec4 color;
 
-void main() {
-    int gid = int(groupId + 0.5);
-    if(groupVisibility[gid] == 0) discard;
-    if(gid == selectedGroup) {
-        color = vec4(0.7, 1.0, 0.0, 1.0);
-        return;
-    }
-
+vec4 getColor() {
     int id = int(matId + 0.5);
 
     vec3 ambient = 0.5 * matKa[id];
@@ -44,8 +37,20 @@ void main() {
 
     vec3 emissive = matKe[id];
 
-    vec3 result = ambient + diffuse + specular + emissive;
-    vec3 gammaCorrected = pow(result, vec3(1.0 / 2.2));
+    return vec4(ambient + diffuse + specular + emissive, matD[id]);
+}
 
-    color = vec4(gammaCorrected, matD[id]);
+void main() {
+    int id = int(matId + 0.5);
+    int gid = int(groupId + 0.5);
+    if(groupVisibility[gid] == 0) discard;
+    
+    if(gid == selectedGroup) {
+        color = vec4(0.4, 0.4, 0.4, 1.0);
+    } else {
+        color = getColor();
+    }
+
+    vec3 gammaCorrected = pow(color.xyz, vec3(1.0 / 2.2));
+    color = vec4(gammaCorrected, color.w);
 }
