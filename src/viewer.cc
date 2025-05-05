@@ -142,7 +142,7 @@ void Viewer::init(const std::string &path, const std::string &mtlDir) {
     createData();
     createBuffers();
 
-    selectedGroup = std::nullopt;
+    selectedGroup = -1;
     isGroupVisible = std::vector<int>(mesh.groups.size(), 1);
 
     camera = Camera(mesh.centroid, mesh.radius * 2.0f, 0.0f, 0.0f);
@@ -204,10 +204,9 @@ void Viewer::renderUI() {
 
         ImGui::SameLine(40);
         
-        bool isSelected = (selectedGroup.has_value() && *selectedGroup == i);
+        bool isSelected = (selectedGroup == i);
         if(ImGui::Selectable(mesh.groups[i].c_str(), isSelected, ImGuiSelectableFlags_AllowDoubleClick)) {
-            if(isSelected) selectedGroup = std::nullopt;
-            else selectedGroup = i;
+            selectedGroup = isSelected ? -1 : i;
         }
 
         ImGui::PopID();
@@ -255,6 +254,7 @@ void Viewer::renderViewer() {
     glUniform1fv(glGetUniformLocation(shader, "matD"), materialDUniform.size(), materialDUniform.data());
 
     glUniform1iv(glGetUniformLocation(shader, "groupVisibility"), isGroupVisible.size(), isGroupVisible.data());
+    glUniform1i(glGetUniformLocation(shader, "selectedGroup"), selectedGroup);
 
     glm::vec3 cameraPos = camera.getPosition();
     glUniform3f(glGetUniformLocation(shader, "viewPos"), cameraPos[0], cameraPos[1], cameraPos[2]);

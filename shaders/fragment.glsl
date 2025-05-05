@@ -15,6 +15,7 @@ uniform float matD[MAX_MATERIALS];
 
 #define MAX_GROUPS 200
 uniform int groupVisibility[MAX_GROUPS];
+uniform int selectedGroup;
 
 uniform vec3 lightPos;
 uniform vec3 viewPos;
@@ -24,6 +25,10 @@ out vec4 color;
 void main() {
     int gid = int(groupId + 0.5);
     if(groupVisibility[gid] == 0) discard;
+    if(gid == selectedGroup) {
+        color = vec4(0.7, 1.0, 0.0, 1.0);
+        return;
+    }
 
     int id = int(matId + 0.5);
 
