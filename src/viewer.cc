@@ -43,6 +43,7 @@ void Viewer::createData() {
             for(size_t i = 0; i < 3; ++i) vertexBuffer.emplace_back(vtx[i]);
             for(size_t i = 0; i < 3; ++i) vertexBuffer.emplace_back(norm[i]);
             vertexBuffer.emplace_back(static_cast<float>(face.material));
+            vertexBuffer.emplace_back(static_cast<float>(face.group));
             ++vtxCnt;
         }
         auto &buffer = mesh.materials[face.material].d < 1.0 ? transparentBuffer : opaqueBuffer;
@@ -64,12 +65,14 @@ void Viewer::createBuffers() {
     glBindVertexArray(vaos[0]);
     
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 7 * sizeof(float), (void*) 0);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 7 * sizeof(float), (void*) (3 * sizeof(float)));
-    glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE, 7 * sizeof(float), (void*) (6 * sizeof(float)));
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*) 0);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*) (3 * sizeof(float)));
+    glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*) (6 * sizeof(float)));
+    glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*) (7 * sizeof(float)));
     glEnableVertexAttribArray(0);
     glEnableVertexAttribArray(1);
     glEnableVertexAttribArray(2);
+    glEnableVertexAttribArray(3);
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebos[0]);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * opaqueBuffer.size(), opaqueBuffer.data(), GL_STATIC_DRAW);
@@ -78,12 +81,14 @@ void Viewer::createBuffers() {
     glBindVertexArray(vaos[1]);
 
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 7 * sizeof(float), (void*) 0);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 7 * sizeof(float), (void*) (3 * sizeof(float)));
-    glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE, 7 * sizeof(float), (void*) (6 * sizeof(float)));
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*) 0);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*) (3 * sizeof(float)));
+    glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*) (6 * sizeof(float)));
+    glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*) (7 * sizeof(float)));
     glEnableVertexAttribArray(0);
     glEnableVertexAttribArray(1);
     glEnableVertexAttribArray(2);
+    glEnableVertexAttribArray(3);
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebos[1]);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * transparentBuffer.size(), transparentBuffer.data(), GL_STREAM_DRAW);
@@ -138,7 +143,7 @@ void Viewer::init(const std::string &path, const std::string &mtlDir) {
     createBuffers();
 
     selectedGroup = std::nullopt;
-    isGroupVisible = std::vector<bool>(mesh.groups.size(), true);
+    isGroupVisible = std::vector<int>(mesh.groups.size(), 1);
 
     camera = Camera(mesh.centroid, mesh.radius * 2.0f, 0.0f, 0.0f);
 
@@ -183,7 +188,7 @@ void Viewer::renderUI() {
     for(size_t i = 0; i < mesh.groups.size(); ++i) {
         ImGui::PushID(i); 
 
-        ImVec4 color = isGroupVisible[i] 
+        ImVec4 color = (isGroupVisible[i] == 1) 
             ? ImVec4(0.2f, 0.8f, 0.2f, 1.0f) // green
             : ImVec4(0.8f, 0.2f, 0.2f, 1.0f); // red
 
@@ -192,7 +197,7 @@ void Viewer::renderUI() {
         ImGui::PushStyleColor(ImGuiCol_ButtonActive, color);
 
         if(ImGui::Button("##visBtn", ImVec2(20, 0))) {
-            isGroupVisible[i] = !isGroupVisible[i];
+            isGroupVisible[i] = 1 - isGroupVisible[i];
         }
 
         ImGui::PopStyleColor(3);
@@ -248,6 +253,8 @@ void Viewer::renderViewer() {
     glUniform3fv(glGetUniformLocation(shader, "matKe"), materialKeUniform.size(), materialKeUniform.data());
     glUniform1fv(glGetUniformLocation(shader, "matNs"), materialNsUniform.size(), materialNsUniform.data());
     glUniform1fv(glGetUniformLocation(shader, "matD"), materialDUniform.size(), materialDUniform.data());
+
+    glUniform1iv(glGetUniformLocation(shader, "groupVisibility"), isGroupVisible.size(), isGroupVisible.data());
 
     glm::vec3 cameraPos = camera.getPosition();
     glUniform3f(glGetUniformLocation(shader, "viewPos"), cameraPos[0], cameraPos[1], cameraPos[2]);

@@ -3,6 +3,7 @@
 in vec3 pos;
 in vec3 normal;
 in float matId;
+in float groupId;
 
 #define MAX_MATERIALS 100
 uniform vec3 matKa[MAX_MATERIALS];
@@ -12,12 +13,18 @@ uniform vec3 matKe[MAX_MATERIALS];
 uniform float matNs[MAX_MATERIALS];
 uniform float matD[MAX_MATERIALS];
 
+#define MAX_GROUPS 200
+uniform int groupVisibility[MAX_GROUPS];
+
 uniform vec3 lightPos;
 uniform vec3 viewPos;
 
 out vec4 color;
 
 void main() {
+    int gid = int(groupId + 0.5);
+    if(groupVisibility[gid] == 0) discard;
+
     int id = int(matId + 0.5);
 
     vec3 ambient = 0.5 * matKa[id];

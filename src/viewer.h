@@ -29,7 +29,7 @@ class Viewer {
     float clock;
 
     std::optional<size_t> selectedGroup;
-    std::vector<bool> isGroupVisible;
+    std::vector<int> isGroupVisible;
 
     void createData();
     void createBuffers();
