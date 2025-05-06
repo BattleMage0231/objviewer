@@ -202,29 +202,41 @@ void Viewer::update() {
     float now = glfwGetTime();
     float deltaTime = now - clock;
 
-    if(window.mouseLeftPressed) {
-        int panelWidth = getPanelWidth();
-        float mouseX = window.mouseX;
-        float mouseY = window.mouseY;
-        if(panelWidth <= mouseX && mouseX <= window.width - panelWidth) {
-            raytraceMouseClick(mouseX - panelWidth, mouseY);
-        }
+    int panelWidth = getPanelWidth();
+    float mouseX = window.mouseX;
+    float mouseY = window.mouseY;
+    float mouseMotionTime = now - window.mouseMotionStartTime;
+    bool mouseOnViewer = panelWidth <= mouseX && mouseX <= window.width - panelWidth;
+    bool mouseReleased = window.mouseReleaseReceived;
+    bool mouseMotionLong = mouseMotionTime > 0.2f;
+
+    if(mouseOnViewer && mouseReleased && !mouseMotionLong) {
+        raytraceMouseClick(mouseX - panelWidth, mouseY);
     }
 
     float deltaX = 0.0f, deltaY = 0.0f, deltaZoom = 0.0f;
+    
     if(window.isKeyPressed(GLFW_KEY_LEFT)) deltaX -= 1;
     if(window.isKeyPressed(GLFW_KEY_RIGHT)) deltaX += 1;
     if(window.isKeyPressed(GLFW_KEY_DOWN)) deltaY -= 1;
     if(window.isKeyPressed(GLFW_KEY_UP)) deltaY += 1;
 
+    if(mouseOnViewer && window.mouseLeftDown) {
+        float mouseDeltaX = mouseX - window.mouseMotionStartX;
+        float mouseDeltaY = mouseY - window.mouseMotionStartY;
+        deltaX -= 50.0f * mouseDeltaX / (window.width - 2 * panelWidth);
+        deltaY += 50.0f * mouseDeltaY / window.height;
+        window.newMouseMotionSegment();
+    }
+
     if(window.isKeyPressed(GLFW_KEY_Z)) deltaZoom -= 1;
-    else if(window.mouseScrollY > 0.0f) deltaZoom -= 4.0f * window.mouseScrollY;
+    else if(mouseOnViewer && window.mouseScrollY > 0.0f) deltaZoom -= 4.0f * window.mouseScrollY;
 
     if(window.isKeyPressed(GLFW_KEY_X)) deltaZoom += 1;
-    else if(window.mouseScrollY < 0.0f) deltaZoom -= 4.0f * window.mouseScrollY;
+    else if(mouseOnViewer && window.mouseScrollY < 0.0f) deltaZoom -= 4.0f * window.mouseScrollY;
 
     window.mouseScrollY = 0.0f;
-    window.mouseLeftPressed = false;
+    window.mouseReleaseReceived = false;
     
     deltaX *= deltaTime;
     deltaY *= deltaTime;
