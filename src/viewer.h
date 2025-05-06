@@ -7,11 +7,19 @@
 #include "mesh.h"
 
 class Viewer {
+    Mesh mesh;
+    Camera camera;
+    Window window;
+
+    float clock;
+    int framesSinceLastUpdate;
+    float lastUpdateTime;
+
+    // rendering objects
     GLuint shader;
     GLuint opaqueVao;
     GLuint transparentVao;
     GLuint transparentEbo;
-
     std::vector<float> materialKaUniform;
     std::vector<float> materialKdUniform;
     std::vector<float> materialKsUniform;
@@ -22,14 +30,18 @@ class Viewer {
     std::vector<unsigned int> opaqueBuffer;
     std::vector<unsigned int> transparentBuffer;
 
-    Mesh mesh;
-    Camera camera;
-    Window window;
-
-    float clock;
-
+    // stats and user-controlled settings
     int selectedGroup;
     std::vector<int> isGroupVisible;
+    float fovDegrees;
+    float rotateSpeed;
+    float zoomSpeed;
+    float ambientLighting;
+    float diffuseLighting;
+    float specularLighting;
+    float emissiveLighting;
+    bool applyGamma;
+    float fps;
 
     void createData();
     void createBuffers();

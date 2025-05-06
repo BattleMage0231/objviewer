@@ -11,7 +11,7 @@
 #define TINYOBJLOADER_IMPLEMENTATION
 #include <tiny_obj_loader.h>
 
-const int startWidth = 1200;
+const int startWidth = 1600;
 const int startHeight = 800;
 const std::string vertexPath = "../shaders/vertex.glsl";
 const std::string fragmentPath = "../shaders/fragment.glsl";

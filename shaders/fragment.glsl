@@ -20,22 +20,28 @@ uniform int selectedGroup;
 uniform vec3 lightPos;
 uniform vec3 viewPos;
 
+uniform float ambientStrength;
+uniform float diffuseStrength;
+uniform float specularStrength;
+uniform float emissiveStrength;
+uniform int applyGamma;
+
 out vec4 color;
 
 vec4 getColor() {
     int id = int(matId + 0.5);
 
-    vec3 ambient = 0.5 * matKa[id];
+    vec3 ambient = ambientStrength * matKa[id];
 
     vec3 norm = normalize(normal);
     vec3 lightDir = normalize(lightPos - pos);
-    vec3 diffuse = 1.0 * max(dot(norm, lightDir), 0.0) * matKd[id];
+    vec3 diffuse = diffuseStrength * max(dot(norm, lightDir), 0.0) * matKd[id];
 
     vec3 viewDir = normalize(viewPos - pos);
     vec3 reflectDir = reflect(-lightDir, norm);
-    vec3 specular = 1.0 * pow(max(dot(viewDir, reflectDir), 0.0), matNs[id]) * matKs[id];
+    vec3 specular = specularStrength * pow(max(dot(viewDir, reflectDir), 0.0), matNs[id]) * matKs[id];
 
-    vec3 emissive = matKe[id];
+    vec3 emissive = emissiveStrength * matKe[id];
 
     return vec4(ambient + diffuse + specular + emissive, matD[id]);
 }
@@ -51,6 +57,8 @@ void main() {
         color = getColor();
     }
 
-    vec3 gammaCorrected = pow(color.xyz, vec3(1.0 / 2.2));
-    color = vec4(gammaCorrected, color.w);
+    if(applyGamma == 1) {
+        vec3 gammaCorrected = pow(color.xyz, vec3(1.0 / 2.2));
+        color = vec4(gammaCorrected, color.w);
+    }
 }

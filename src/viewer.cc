@@ -5,7 +5,7 @@
 #include <iostream>
 #include <algorithm>
 
-Viewer::Viewer(GLFWwindow* window, GLuint shader) : shader {shader}, window {window} {}
+Viewer::Viewer(GLFWwindow* window, GLuint shader) : window {window}, shader {shader} {}
 
 void Viewer::createData() {
     materialKaUniform.clear();
@@ -117,7 +117,7 @@ void Viewer::sortTransparentFaces() {
 }
 
 int Viewer::getPanelWidth() const {
-    int width = static_cast<int>(window.width * 0.12f);
+    int width = static_cast<int>(window.width * 0.14f);
     return glm::max(width, 100);
 }
 
@@ -135,7 +135,7 @@ glm::mat4 Viewer::getProjectionMatrix() const {
     nearClip *= 0.9f;
     farClip = glm::max(nearClip, farClip) + 0.1f;
     float aspectRatio = (static_cast<float>(window.width) - 2 * getPanelWidth()) / window.height;
-    return glm::perspective(glm::radians(60.0f), aspectRatio, nearClip, farClip);
+    return glm::perspective(glm::radians(fovDegrees), aspectRatio, nearClip, farClip);
 }
 
 void Viewer::init(const std::string &path, const std::string &mtlDir) {
@@ -143,11 +143,22 @@ void Viewer::init(const std::string &path, const std::string &mtlDir) {
     createData();
     createBuffers();
 
-    selectedGroup = -1;
-    isGroupVisible = std::vector<int>(mesh.groups.size(), 1);
-
     camera = Camera(mesh.centroid, mesh.radius * 2.0f, 0.0f, 0.0f);
 
+    selectedGroup = -1;
+    isGroupVisible = std::vector<int>(mesh.groups.size(), 1);
+    fovDegrees = 60.0f;
+    rotateSpeed = 2.0f;
+    zoomSpeed = 0.4f;
+    ambientLighting = 1.0f;
+    diffuseLighting = 2.0f;
+    specularLighting = 2.0f;
+    emissiveLighting = 1.0f;
+    applyGamma = true;
+    fps = 0.0f;
+
+    framesSinceLastUpdate = 0;
+    lastUpdateTime = 0.0f;
     clock = glfwGetTime();
 }
 
@@ -166,19 +177,26 @@ void Viewer::update() {
     deltaX *= deltaTime;
     deltaY *= deltaTime;
     deltaZoom *= deltaTime;
-    camera.rotate(deltaX * 2.0f, deltaY * 2.0f);
-    camera.zoom(deltaZoom * 0.4 * mesh.radius);
+    camera.rotate(deltaX * rotateSpeed, deltaY * rotateSpeed);
+    camera.zoom(deltaZoom * zoomSpeed * mesh.radius);
+
+    if(now - lastUpdateTime > 0.5f) {
+        fps = framesSinceLastUpdate / (now - lastUpdateTime);
+        framesSinceLastUpdate = 0;
+        lastUpdateTime = now;
+    } else {
+        ++framesSinceLastUpdate;
+    }
 
     clock = now;
 }
 
 void Viewer::renderUI() {
     int panelWidth = getPanelWidth();
-    float dummyValue = 0.5f;
 
     ImGui::SetNextWindowPos(ImVec2(0, 0));
     ImGui::SetNextWindowSize(ImVec2((float) panelWidth, (float) ImGui::GetIO().DisplaySize.y));
-    ImGui::Begin("Groups", nullptr,
+    ImGui::Begin("Left Panel", nullptr,
         ImGuiWindowFlags_NoTitleBar |
         ImGuiWindowFlags_NoResize |
         ImGuiWindowFlags_NoMove |
@@ -228,16 +246,46 @@ void Viewer::renderUI() {
     int fbWidth = window.width;
     int fbHeight = window.height;
 
-    ImGui::SetNextWindowPos(ImVec2((float)(fbWidth - panelWidth), 0));
-    ImGui::SetNextWindowSize(ImVec2((float)panelWidth, (float)fbHeight));
+    ImGui::SetNextWindowPos(ImVec2((float) (fbWidth - panelWidth), 0));
+    ImGui::SetNextWindowSize(ImVec2((float) panelWidth, (float) fbHeight));
     ImGui::Begin("Right Panel", nullptr,
-                 ImGuiWindowFlags_NoTitleBar |
-                 ImGuiWindowFlags_NoResize |
-                 ImGuiWindowFlags_NoMove |
-                 ImGuiWindowFlags_NoCollapse);
+        ImGuiWindowFlags_NoTitleBar |
+        ImGuiWindowFlags_NoResize |
+        ImGuiWindowFlags_NoMove |
+        ImGuiWindowFlags_NoCollapse);
 
     ImGui::Text("Settings");
-    ImGui::SliderFloat("Dummy Slider", &dummyValue, 0.0f, 1.0f);
+    
+    if(ImGui::CollapsingHeader("Camera", ImGuiTreeNodeFlags_DefaultOpen)) {
+        ImGui::Text("FOV");
+        ImGui::SliderFloat("##fov", &fovDegrees, 10.0f, 90.0f);
+
+        ImGui::Text("Rotation Speed");
+        ImGui::SliderFloat("##rotSpeed", &rotateSpeed, 0.5f, 5.0f);
+
+        ImGui::Text("Zoom Speed");
+        ImGui::SliderFloat("##zoomSpeed", &zoomSpeed, 0.1f, 2.0f);
+    }
+
+    if(ImGui::CollapsingHeader("Lighting", ImGuiTreeNodeFlags_DefaultOpen)) {
+        ImGui::Text("Ambient Strength");
+        ImGui::SliderFloat("##ambientStrength", &ambientLighting, 0.0f, 2.0f);
+
+        ImGui::Text("Diffuse Strength");
+        ImGui::SliderFloat("##diffuseStrength", &diffuseLighting, 0.0f, 3.0f);
+
+        ImGui::Text("Specular Strength");
+        ImGui::SliderFloat("##specularStrength", &specularLighting, 0.0f, 3.0f);
+
+        ImGui::Text("Emissive Strength");
+        ImGui::SliderFloat("##emissiveStrength", &emissiveLighting, 0.0f, 2.0f);
+
+        ImGui::Checkbox("Gamma Correction", &applyGamma);
+    }
+
+    if(ImGui::CollapsingHeader("Rendering", ImGuiTreeNodeFlags_DefaultOpen)) {
+        ImGui::Text("FPS: %.1f", fps);
+    }
 
     ImGui::End();
 }
@@ -265,6 +313,11 @@ void Viewer::renderViewer() {
 
     glUniform1iv(glGetUniformLocation(shader, "groupVisibility"), isGroupVisible.size(), isGroupVisible.data());
     glUniform1i(glGetUniformLocation(shader, "selectedGroup"), selectedGroup);
+    glUniform1f(glGetUniformLocation(shader, "ambientStrength"), ambientLighting);
+    glUniform1f(glGetUniformLocation(shader, "diffuseStrength"), diffuseLighting);
+    glUniform1f(glGetUniformLocation(shader, "specularStrength"), specularLighting);
+    glUniform1f(glGetUniformLocation(shader, "emissiveStrength"), emissiveLighting);
+    glUniform1i(glGetUniformLocation(shader, "applyGamma"), applyGamma);
 
     glm::vec3 cameraPos = camera.getPosition();
     glUniform3f(glGetUniformLocation(shader, "viewPos"), cameraPos[0], cameraPos[1], cameraPos[2]);
