@@ -186,9 +186,9 @@ void Viewer::init(const std::string &path, const std::string &mtlDir) {
     fovDegrees = 60.0f;
     rotateSpeed = 2.0f;
     zoomSpeed = 1.0f;
-    ambientLighting = 1.0f;
-    diffuseLighting = 2.0f;
-    specularLighting = 2.0f;
+    ambientLighting = 0.5f;
+    diffuseLighting = 1.0f;
+    specularLighting = 1.0f;
     emissiveLighting = 1.0f;
     applyGamma = true;
     fps = 0.0f;
