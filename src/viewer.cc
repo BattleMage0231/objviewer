@@ -37,6 +37,8 @@ void Viewer::createData() {
         materialDUniform.emplace_back(mesh.materials[i].d);
     }
 
+    vertexBuffer.reserve(8 * mesh.faces.size());
+
     size_t vtxCnt = 0;
     for(const auto &face : mesh.faces) {
         for(size_t i = 0; i < face.vertices.size(); ++i) {

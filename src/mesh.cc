@@ -14,9 +14,9 @@ void Mesh::loadBase(const std::string &path, const std::string &mtlDir) {
         throw std::runtime_error {""};
     }
 
-    const auto &objAttrib = reader.GetAttrib();
-    const auto &objVertices = objAttrib.vertices;
-    const auto &objNormals = objAttrib.normals;
+    const auto& objAttrib = reader.GetAttrib();
+    const auto& objVertices = objAttrib.vertices;
+    const auto& objNormals = objAttrib.normals;
     const auto& objShapes = reader.GetShapes();
     const auto& objMaterials = reader.GetMaterials();
 
@@ -47,6 +47,8 @@ void Mesh::loadBase(const std::string &path, const std::string &mtlDir) {
             Face face;
             face.material = static_cast<size_t>(shape.mesh.material_ids[f] + 1);
             face.group = groups.size() - 1;
+            face.vertices.reserve(3);
+            face.normals.reserve(3);
 
             for(size_t v = 0; v < 3; ++v) {
                 int vertexIndex = shape.mesh.indices[3 * f + v].vertex_index;
