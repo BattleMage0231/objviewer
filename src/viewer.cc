@@ -149,7 +149,7 @@ void Viewer::init(const std::string &path, const std::string &mtlDir) {
     isGroupVisible = std::vector<int>(mesh.groups.size(), 1);
     fovDegrees = 60.0f;
     rotateSpeed = 2.0f;
-    zoomSpeed = 0.4f;
+    zoomSpeed = 1.0f;
     ambientLighting = 1.0f;
     diffuseLighting = 2.0f;
     specularLighting = 2.0f;
@@ -171,8 +171,15 @@ void Viewer::update() {
     if(window.isKeyPressed(GLFW_KEY_RIGHT)) deltaX += 1;
     if(window.isKeyPressed(GLFW_KEY_DOWN)) deltaY -= 1;
     if(window.isKeyPressed(GLFW_KEY_UP)) deltaY += 1;
+
     if(window.isKeyPressed(GLFW_KEY_Z)) deltaZoom -= 1;
+    else if(window.mouseScrollY > 0.0f) deltaZoom -= 4.0f * window.mouseScrollY;
+
     if(window.isKeyPressed(GLFW_KEY_X)) deltaZoom += 1;
+    else if(window.mouseScrollY < 0.0f) deltaZoom -= 4.0f * window.mouseScrollY;
+
+    window.mouseScrollY = 0.0f;
+    window.mouseLeftPressed = false;
     
     deltaX *= deltaTime;
     deltaY *= deltaTime;
@@ -192,8 +199,11 @@ void Viewer::update() {
 }
 
 void Viewer::renderUI() {
+    int fbWidth = window.width;
+    int fbHeight = window.height;
     int panelWidth = getPanelWidth();
 
+    // left panel
     ImGui::SetNextWindowPos(ImVec2(0, 0));
     ImGui::SetNextWindowSize(ImVec2((float) panelWidth, (float) ImGui::GetIO().DisplaySize.y));
     ImGui::Begin("Left Panel", nullptr,
@@ -242,10 +252,7 @@ void Viewer::renderUI() {
 
     ImGui::End();
 
-    // Right panel
-    int fbWidth = window.width;
-    int fbHeight = window.height;
-
+    // right panel
     ImGui::SetNextWindowPos(ImVec2((float) (fbWidth - panelWidth), 0));
     ImGui::SetNextWindowSize(ImVec2((float) panelWidth, (float) fbHeight));
     ImGui::Begin("Right Panel", nullptr,

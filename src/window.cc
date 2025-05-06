@@ -9,6 +9,18 @@ static void mouseCallback(GLFWwindow* window, double xPos, double yPos) {
     ImGui_ImplGlfw_CursorPosCallback(window, xPos, yPos);
 }
 
+static void mouseButtonCallback(GLFWwindow *window, int button, int action, int mods) {
+    Window* c = static_cast<Window*>(glfwGetWindowUserPointer(window));
+    if(c) c->handleMouseButton(button, action);
+    ImGui_ImplGlfw_MouseButtonCallback(window, button, action, mods);
+}
+
+static void scrollCallback(GLFWwindow* window, double xDelta, double yDelta) {
+    Window* c = static_cast<Window*>(glfwGetWindowUserPointer(window));
+    if(c) c->handleMouseScroll(yDelta);
+    ImGui_ImplGlfw_ScrollCallback(window, xDelta, yDelta);
+}
+
 static void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
     Window* c = static_cast<Window*>(glfwGetWindowUserPointer(window));
     if(c) c->handleKeyEvent(key, action);
@@ -20,24 +32,35 @@ static void framebufferSizeCallback(GLFWwindow *window, int width, int height) {
     if(c) c->handleFramebufferSizeEvent(width, height);
 }
 
-Window::Window(GLFWwindow *window) {
+Window::Window(GLFWwindow *window) : mouseScrollY {0.0f}, mouseLeftPressed {false} {
     glfwSetWindowUserPointer(window, this);
     glfwSetKeyCallback(window, keyCallback);
     glfwSetCursorPosCallback(window, mouseCallback);
+    glfwSetMouseButtonCallback(window, mouseButtonCallback);
+    glfwSetScrollCallback(window, scrollCallback);
     glfwSetFramebufferSizeCallback(window, framebufferSizeCallback);
     //glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
     glfwGetWindowSize(window, &width, &height);
 }
 
-void Window::update() {
-    lastMouseX = mouseX;
-    lastMouseY = mouseY;
-}
-
 void Window::handleMouseEvent(float xPos, float yPos) {
     mouseX = xPos;
     mouseY = yPos;
+}
+
+void Window::handleMouseButton(int button, int action) {
+    if(button == GLFW_MOUSE_BUTTON_LEFT) {
+        if(action == GLFW_PRESS) {
+            mouseLeftPressed = true;
+        } else if(action == GLFW_RELEASE) {
+            mouseLeftPressed = false;
+        }
+    }
+}
+
+void Window::handleMouseScroll(float yDelta) {
+    mouseScrollY = yDelta;
 }
 
 void Window::handleKeyEvent(int key, int action) {
