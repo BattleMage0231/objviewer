@@ -1,6 +1,7 @@
 #include "viewer.h"
 #include <imgui.h>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/intersect.hpp>
 #include <glm/gtx/norm.hpp>
 #include <iostream>
 #include <algorithm>
@@ -138,6 +139,39 @@ glm::mat4 Viewer::getProjectionMatrix() const {
     return glm::perspective(glm::radians(fovDegrees), aspectRatio, nearClip, farClip);
 }
 
+void Viewer::raytraceMouseClick(float viewerX, float viewerY) {
+    glm::vec2 mouseNDC(
+        (2.0f * viewerX) / (window.width - 2 * getPanelWidth()) - 1.0f,
+        1.0f - (2.0f * viewerY) / window.height
+    );
+    glm::vec4 rayClip = glm::vec4(mouseNDC.x, mouseNDC.y, -1.0f, 1.0f);
+    glm::vec4 rayEye = glm::inverse(getProjectionMatrix()) * rayClip;
+    rayEye = glm::vec4(rayEye.x, rayEye.y, -1.0f, 0.0f);
+    glm::vec3 rayWorld = glm::normalize(glm::vec3(glm::inverse(camera.getView()) * rayEye));
+
+    glm::vec3 cameraPos = camera.getPosition();
+    std::optional<size_t> minIntersect = {};
+    float minT = 1.0e9;
+    for(const auto &face : mesh.faces) {
+        if(!isGroupVisible[face.group]) continue;
+
+        glm::vec2 baryPos;
+        float t;
+        if(glm::intersectRayTriangle(cameraPos, rayWorld, face.vertices[0], face.vertices[1], face.vertices[2], baryPos, t)) {
+            if(t > 0.0 && t < minT) {
+                minT = t;
+                minIntersect = face.group;
+            }
+        }
+    }
+
+    if(!minIntersect) {
+        selectedGroup = -1;
+    } else {
+        selectedGroup = *minIntersect;
+    }
+}
+
 void Viewer::init(const std::string &path, const std::string &mtlDir) {
     mesh.load(path, mtlDir);
     createData();
@@ -165,6 +199,15 @@ void Viewer::init(const std::string &path, const std::string &mtlDir) {
 void Viewer::update() {
     float now = glfwGetTime();
     float deltaTime = now - clock;
+
+    if(window.mouseLeftPressed) {
+        int panelWidth = getPanelWidth();
+        float mouseX = window.mouseX;
+        float mouseY = window.mouseY;
+        if(panelWidth <= mouseX && mouseX <= window.width - panelWidth) {
+            raytraceMouseClick(mouseX - panelWidth, mouseY);
+        }
+    }
 
     float deltaX = 0.0f, deltaY = 0.0f, deltaZoom = 0.0f;
     if(window.isKeyPressed(GLFW_KEY_LEFT)) deltaX -= 1;

@@ -51,6 +51,8 @@ class Viewer {
     int getPanelWidth() const;
     glm::mat4 getProjectionMatrix() const;
 
+    void raytraceMouseClick(float viewerX, float viewerY);
+
     void renderUI();
     void renderViewer();
 public:
