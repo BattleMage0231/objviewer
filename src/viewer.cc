@@ -254,7 +254,14 @@ void Viewer::renderUI() {
         ImGuiWindowFlags_NoMove |
         ImGuiWindowFlags_NoCollapse);
 
-    ImGui::Text("Settings");
+    ImGui::Text("Settings & Information");
+
+    if(selectedGroup != -1 && ImGui::CollapsingHeader("Selected Group", ImGuiTreeNodeFlags_DefaultOpen)) {
+        ImGui::Text("Name: %s", mesh.groups[selectedGroup].c_str());
+
+        int numberOfFaces = mesh.groupToFaces[static_cast<size_t>(selectedGroup)].size();
+        ImGui::Text("Number of Faces: %d", numberOfFaces);
+    }
     
     if(ImGui::CollapsingHeader("Camera", ImGuiTreeNodeFlags_DefaultOpen)) {
         ImGui::Text("FOV");
