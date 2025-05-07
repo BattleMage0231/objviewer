@@ -25,6 +25,8 @@ struct Mesh {
         size_t group;
     };
 
+    std::string path;
+
     std::vector<Material> materials;
     std::vector<std::string> groups;
 

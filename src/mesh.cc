@@ -95,6 +95,8 @@ void Mesh::loadBase(const std::string &path, const std::string &mtlDir) {
 }
 
 void Mesh::load(const std::string &path, const std::string &mtlDir) {
+    this->path = path;
+
     materials.clear();
     groups.clear();
     faces.clear();

@@ -222,11 +222,15 @@ void Viewer::update() {
     if(window.isKeyPressed(GLFW_KEY_UP)) deltaY += 1;
 
     if(mouseOnViewer && window.mouseLeftDown) {
-        float mouseDeltaX = mouseX - window.mouseMotionStartX;
-        float mouseDeltaY = mouseY - window.mouseMotionStartY;
-        deltaX -= 50.0f * mouseDeltaX / (window.width - 2 * panelWidth);
-        deltaY += 50.0f * mouseDeltaY / window.height;
-        window.newMouseMotionSegment();
+        float startX = window.mouseMotionStartX;
+        float startY = window.mouseMotionStartY;
+        if(startX > panelWidth && startX < window.width - panelWidth) {
+            float mouseDeltaX = mouseX - startX;
+            float mouseDeltaY = mouseY - startY;
+            deltaX -= 65.0f * mouseDeltaX / (window.width - 2 * panelWidth);
+            deltaY += 65.0f * mouseDeltaY / window.height;
+            window.newMouseMotionSegment();
+        }
     }
 
     if(window.isKeyPressed(GLFW_KEY_Z)) deltaZoom -= 1;
@@ -287,9 +291,13 @@ void Viewer::renderUI() {
             ? ImVec4(0.2f, 0.8f, 0.2f, 1.0f)
             : ImVec4(0.8f, 0.2f, 0.2f, 1.0f);
 
+        ImVec4 hoverColor = (isGroupVisible[i] == 1) 
+            ? ImVec4(0.2f, 0.8f, 0.2f, 0.6f)
+            : ImVec4(0.8f, 0.2f, 0.2f, 0.6f);
+
         ImGui::PushStyleColor(ImGuiCol_Button, color);
-        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, color);
-        ImGui::PushStyleColor(ImGuiCol_ButtonActive, color);
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, hoverColor);
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, hoverColor);
 
         if(ImGui::Button("##visBtn", ImVec2(20, 0))) {
             isGroupVisible[i] = 1 - isGroupVisible[i];
@@ -355,6 +363,7 @@ void Viewer::renderUI() {
     }
 
     if(ImGui::CollapsingHeader("Rendering", ImGuiTreeNodeFlags_DefaultOpen)) {
+        ImGui::Text("File: %s", mesh.path.c_str());
         ImGui::Text("FPS: %.1f", fps);
     }
 
