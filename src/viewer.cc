@@ -120,8 +120,8 @@ void Viewer::sortTransparentFaces() {
 }
 
 int Viewer::getPanelWidth() const {
-    int width = static_cast<int>(window.width * 0.14f);
-    return glm::max(width, 100);
+    int width = static_cast<int>(window.width * 0.16);
+    return glm::max(width, 150);
 }
 
 glm::mat4 Viewer::getProjectionMatrix() const {
@@ -178,6 +178,12 @@ void Viewer::init(const std::string &path, const std::string &mtlDir) {
     mesh.load(path, mtlDir);
     createData();
     createBuffers();
+
+    ImGuiIO& io = ImGui::GetIO();
+    io.Fonts->Clear();
+    ImFontConfig fontConfig;
+    fontConfig.SizePixels = 18.0f;
+    io.Fonts->AddFontDefault(&fontConfig);
 
     camera = Camera(mesh.centroid, mesh.radius * 2.0f, 0.0f, 0.0f);
 
