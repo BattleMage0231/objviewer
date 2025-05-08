@@ -11,6 +11,8 @@ struct Window {
     float mouseY;
     float mouseMotionStartX;
     float mouseMotionStartY;
+    float mouseSegmentStartX;
+    float mouseSegmentStartY;
     float mouseMotionStartTime;
     float mouseScrollY;
     bool mouseLeftDown;

@@ -49,8 +49,8 @@ Window::Window(GLFWwindow *window) :
 
 void Window::newMouseMotionSegment() {
     if(mouseLeftDown) {
-        mouseMotionStartX = mouseX;
-        mouseMotionStartY = mouseY;
+        mouseSegmentStartX = mouseX;
+        mouseSegmentStartY = mouseY;
     }
 }
 
@@ -65,6 +65,8 @@ void Window::handleMouseButton(int button, int action) {
     if(action == GLFW_PRESS) {
         mouseMotionStartX = mouseX;
         mouseMotionStartY = mouseY;
+        mouseSegmentStartX = mouseX;
+        mouseSegmentStartY = mouseY;
         mouseMotionStartTime = glfwGetTime();
         mouseLeftDown = true;
     } else if(action == GLFW_RELEASE) {

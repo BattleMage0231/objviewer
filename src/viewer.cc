@@ -205,12 +205,18 @@ void Viewer::update() {
     int panelWidth = getPanelWidth();
     float mouseX = window.mouseX;
     float mouseY = window.mouseY;
+    float startX = window.mouseMotionStartX;
+    float startY = window.mouseMotionStartY;
+    float segmentX = window.mouseSegmentStartX;
+    float segmentY = window.mouseSegmentStartY;
     float mouseMotionTime = now - window.mouseMotionStartTime;
+    float mouseMotionDist = glm::length(glm::vec2(mouseX, mouseY) - glm::vec2(startX, startY));
     bool mouseOnViewer = panelWidth <= mouseX && mouseX <= window.width - panelWidth;
     bool mouseReleased = window.mouseReleaseReceived;
-    bool mouseMotionLong = mouseMotionTime > 0.2f;
+    bool mouseDown = !mouseReleased && window.mouseLeftDown;
+    bool isMouseClick = mouseMotionTime < 0.4f && mouseMotionDist < 2.0f;
 
-    if(mouseOnViewer && mouseReleased && !mouseMotionLong) {
+    if(mouseOnViewer && mouseReleased && isMouseClick) {
         raytraceMouseClick(mouseX - panelWidth, mouseY);
     }
 
@@ -221,16 +227,12 @@ void Viewer::update() {
     if(window.isKeyPressed(GLFW_KEY_DOWN)) deltaY -= 1;
     if(window.isKeyPressed(GLFW_KEY_UP)) deltaY += 1;
 
-    if(mouseOnViewer && window.mouseLeftDown) {
-        float startX = window.mouseMotionStartX;
-        float startY = window.mouseMotionStartY;
-        if(startX > panelWidth && startX < window.width - panelWidth) {
-            float mouseDeltaX = mouseX - startX;
-            float mouseDeltaY = mouseY - startY;
-            deltaX -= 65.0f * mouseDeltaX / (window.width - 2 * panelWidth);
-            deltaY += 65.0f * mouseDeltaY / window.height;
-            window.newMouseMotionSegment();
-        }
+    if(mouseOnViewer && mouseDown && segmentX > panelWidth && segmentY < window.width - panelWidth) {
+        float mouseDeltaX = mouseX - segmentX;
+        float mouseDeltaY = mouseY - segmentY;
+        deltaX -= 65.0f * mouseDeltaX / (window.width - 2 * panelWidth);
+        deltaY += 65.0f * mouseDeltaY / window.height;
+        window.newMouseMotionSegment();
     }
 
     if(window.isKeyPressed(GLFW_KEY_Z)) deltaZoom -= 1;
